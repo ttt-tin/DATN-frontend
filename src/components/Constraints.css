@@ -1,0 +1,44 @@
+.constraints-container {
+    padding: 20px;
+    width: 100%;
+  }
+  
+  .constraints-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .constraints-title {
+    font-size: 24px;
+    margin: 0;
+  }
+  
+  .constraints-space {
+    width: 100%;
+  }
+  
+  .constraints-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .constraints-input {
+    flex: 1;
+  }
+  
+  .constraints-add-button {
+    color: #52c41a; /* Optional: Green color for the add button */
+  }
+  
+  .constraints-delete-button {
+    color: #ff4d4f; /* Optional: Red color for the delete button */
+  }
+  
+  .constraints-save-button {
+    width: auto; /* Button adjusts based on text */
+  }
+  
