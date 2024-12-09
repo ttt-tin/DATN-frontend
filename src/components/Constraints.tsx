@@ -3,9 +3,11 @@ import { Button, Input, Space, message } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import axios from "axios";
 import "./Constraints.css"; // Add a corresponding CSS file
+import constraintService from '../services/contraints.ts'
 
 const Constraints: React.FC = () => {
   const [inputs, setInputs] = useState<string[]>([""]); // Array to hold input values
+  const [constraintTable, setConstraintTable] = useState<string>("");
 
   // Handler to add a new input line below a specific line
   const handleAddInputBelow = (index: number) => {
@@ -30,12 +32,17 @@ const Constraints: React.FC = () => {
     setInputs(updatedInputs);
   };
 
+  const handleContraintTable = (value: string) => {
+    setConstraintTable(value);
+  };
+
   // Handler to concatenate all inputs and call the API
   const handleSave = async () => {
     const concatenatedString = inputs.join("\n"); // Join all inputs with newline characters
     try {
-      const response = await axios.post("/api/constraints", { data: concatenatedString });
-      message.success("Data saved successfully!");
+      const result = await constraintService.create(concatenatedString, constraintTable);
+
+      console.log(result)
     } catch (error) {
       message.error("Error saving data.");
       console.error(error);
@@ -47,13 +54,25 @@ const Constraints: React.FC = () => {
       <div className="constraints-header">
         <h2 className="constraints-title">Constraints</h2>
         <Button
-          type="primary"
+          type="link"
           onClick={handleSave}
           className="constraints-save-button"
         >
           Save
         </Button>
       </div>
+      <Space
+        direction="vertical"
+        className="constraints-space"
+        style={{ marginRight: 500, marginBottom: 10 }}
+      >
+        <Input
+          value={constraintTable}
+          onChange={(e) => handleContraintTable(e.target.value)}
+          placeholder={`Constraint tables`}
+          className="constraints-input"
+        />
+      </Space>
       <Space direction="vertical" className="constraints-space">
         {inputs.map((input, index) => (
           <div key={index} className="constraints-input-row">

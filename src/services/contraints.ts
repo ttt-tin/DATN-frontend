@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-class Contraints {
+class ContraintsService {
   private baseUrl: string;
 
   constructor() {
@@ -21,4 +21,4 @@ class Contraints {
   }
 }
 
-export default new Contraints();
+export default new ContraintsService();
