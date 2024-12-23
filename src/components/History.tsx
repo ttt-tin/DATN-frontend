@@ -1,76 +1,85 @@
-import React, { useState } from 'react';
-import { Table, Button } from 'antd';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Table, Tag, Button } from 'antd';
 
 const History: React.FC = () => {
-  // Sample session history data
-  const sampleData = [
-    {
-      id: "1",
-      status: "Completed",
-      start_date: "2024-12-01T08:00:00Z",
-      end_date: "2024-12-01T10:00:00Z"
-    },
-    {
-      id: "2",
-      status: "In Progress",
-      start_date: "2024-12-02T09:00:00Z",
-      end_date: "2024-12-02T11:00:00Z"
-    }
-  ];
-
-  const [sessionData, setSessionData] = useState<any[]>(sampleData); // Set the sample data to the state
   const navigate = useNavigate();
 
-  // Define the columns for the table
+  // Hardcoded session history data
+  const sessionHistory = [
+    {
+      key: '1',
+      sessionId: 'S001',
+      status: 'Active',
+      startTime: '2024-12-15 09:00:00',
+      duration: '2h 15m',
+    },
+    {
+      key: '2',
+      sessionId: 'S002',
+      status: 'Completed',
+      startTime: '2024-12-14 14:30:00',
+      duration: '1h 30m',
+    },
+    {
+      key: '3',
+      sessionId: 'S003',
+      status: 'Error',
+      startTime: '2024-12-14 16:00:00',
+      duration: '0h 45m',
+    },
+    {
+      key: '4',
+      sessionId: 'S004',
+      status: 'Completed',
+      startTime: '2024-12-13 11:00:00',
+      duration: '2h 10m',
+    },
+    {
+      key: '5',
+      sessionId: 'S005',
+      status: 'Active',
+      startTime: '2024-12-15 10:00:00',
+      duration: '1h 10m',
+    },
+  ];
+
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      render: (text: string) => <span>{text}</span>, // Display the session ID
+      title: 'Session ID',
+      dataIndex: 'sessionId',
+      key: 'sessionId',
+      render: (text: string) => (
+        <Button type="link" onClick={() => navigate(`/session/${text}`)}>
+          {text}
+        </Button>
+      ),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (text: string) => <span>{text}</span>, // Display session status
+      render: (status: string) => {
+        let color = status === 'Active' ? 'green' : status === 'Error' ? 'red' : 'blue';
+        return <Tag color={color}>{status}</Tag>;
+      },
     },
     {
-      title: 'Start Date',
-      dataIndex: 'start_date',
-      key: 'start_date',
-      render: (text: string) => <span>{new Date(text).toLocaleString()}</span>, // Format start date
+      title: 'Start Time',
+      dataIndex: 'startTime',
+      key: 'startTime',
     },
     {
-      title: 'End Date',
-      dataIndex: 'end_date',
-      key: 'end_date',
-      render: (text: string) => <span>{new Date(text).toLocaleString()}</span>, // Format end date
+      title: 'Duration',
+      dataIndex: 'duration',
+      key: 'duration',
     },
-    {
-      title: '',
-      key: 'action',
-      render: (_: any, record: any) => (
-        <Button
-          type="link"
-          onClick={() => navigate(`/session/${record.id}`)} // Navigate to session detail page
-        >
-          View Details
-        </Button>
-      ),
-    }
   ];
 
   return (
-    <div style={{ padding: 20 }}>
+    <div>
       <h2>Session History</h2>
-      <Table
-        dataSource={sessionData} // Session data from the sample
-        columns={columns} // Columns to display
-        rowKey="id" // Ensure each row has a unique key
-        pagination={{ pageSize: 10 }} // Paginate the table with a page size of 10
-      />
+      <Table columns={columns} dataSource={sessionHistory} pagination={{ pageSize: 5 }} />
     </div>
   );
 };

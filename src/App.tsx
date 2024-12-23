@@ -10,6 +10,7 @@ import { Route, Routes, useNavigate, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard.tsx';
 import Constraints from './components/Constraints.tsx';
 import History from './components/History.tsx';
+import SessionDetail from './components/SessionDetail.tsx';
 
 const { Header, Content, Sider } = Layout;
 
@@ -59,6 +60,7 @@ const App: React.FC = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/constraints" element={<Constraints />} />
             <Route path="/history" element={<History />} />
+            <Route path="/session/:sessionId" element={<SessionDetail />} />
           </Routes>
         </Content>
       </Layout>

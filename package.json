@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ant-design/plots": "^2.3.2",
     "antd": "^5.22.3",
     "axios": "^1.7.9",
     "cra-template-typescript": "1.2.0",
