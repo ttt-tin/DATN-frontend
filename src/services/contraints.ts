@@ -21,4 +21,5 @@ class ContraintsService {
   }
 }
 
-export default new ContraintsService();
+const contraintsServiceInstance = new ContraintsService();
+export default contraintsServiceInstance;
