@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Button, Input, Space, message } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import axios from "axios";
 import "./Constraints.css"; // Add a corresponding CSS file
 import constraintService from '../services/contraints.ts'
 

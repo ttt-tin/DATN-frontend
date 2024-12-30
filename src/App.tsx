@@ -3,6 +3,7 @@ import {
   DashboardOutlined,
   DesktopOutlined,
   HistoryOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { Layout, Menu, theme } from 'antd';
@@ -10,6 +11,7 @@ import { Route, Routes, useNavigate, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard.tsx';
 import Constraints from './components/Constraints.tsx';
 import History from './components/History.tsx';
+import Mapping from './components/Mapping.tsx';
 
 const { Header, Content, Sider } = Layout;
 
@@ -41,7 +43,8 @@ const App: React.FC = () => {
   const items: MenuItem[] = [
     getItem('Dashboard', '1', <DashboardOutlined />, () => navigate('/dashboard')),
     getItem('Constraints', '2', <DesktopOutlined />, () => navigate('/constraints')),
-    getItem('History', '9', <HistoryOutlined />, () => navigate('/history')),
+    getItem('History', '3', <HistoryOutlined />, () => navigate('/history')),
+    getItem('Mapping', '4', <ToolOutlined />, () => navigate('/mapping')),
   ];
 
   return (
@@ -59,6 +62,7 @@ const App: React.FC = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/constraints" element={<Constraints />} />
             <Route path="/history" element={<History />} />
+            <Route path="/mapping" element={<Mapping />} />
           </Routes>
         </Content>
       </Layout>
