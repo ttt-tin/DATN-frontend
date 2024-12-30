@@ -3,6 +3,7 @@ import {
   DashboardOutlined,
   DesktopOutlined,
   HistoryOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { Layout, Menu, theme } from 'antd';
@@ -12,6 +13,7 @@ import Constraints from './components/Constraints.tsx';
 import History from './components/History.tsx';
 import SessionDetail from './components/SessionDetail.tsx';
 import QueryEditor from './components/QueryEditor.tsx';
+import Mapping from './components/Mapping.tsx';
 
 const { Header, Content, Sider } = Layout;
 
@@ -45,6 +47,8 @@ const App: React.FC = () => {
     getItem('Constraints', '2', <DesktopOutlined />, () => navigate('/constraints')),
     getItem('History', '9', <HistoryOutlined />, () => navigate('/history')),
     getItem('Query Editor', '4', <DesktopOutlined />, () => navigate('/query-editor')),
+    getItem('History', '3', <HistoryOutlined />, () => navigate('/history')),
+    getItem('Mapping', '4', <ToolOutlined />, () => navigate('/mapping')),
   ];
 
   return (
@@ -64,6 +68,7 @@ const App: React.FC = () => {
             <Route path="/history" element={<History />} />
             <Route path="/query-editor" element={<QueryEditor />} />
             <Route path="/session/:sessionId" element={<SessionDetail />} />
+            <Route path="/mapping" element={<Mapping />} />
           </Routes>
         </Content>
       </Layout>

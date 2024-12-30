@@ -18,4 +18,5 @@ class RunScript {
   }
 }
 
-export default new RunScript();
+const runScriptInstance = new RunScript();
+export default runScriptInstance;
