@@ -11,6 +11,7 @@ import Dashboard from './components/Dashboard.tsx';
 import Constraints from './components/Constraints.tsx';
 import History from './components/History.tsx';
 import SessionDetail from './components/SessionDetail.tsx';
+import QueryEditor from './components/QueryEditor.tsx';
 
 const { Header, Content, Sider } = Layout;
 
@@ -43,6 +44,7 @@ const App: React.FC = () => {
     getItem('Dashboard', '1', <DashboardOutlined />, () => navigate('/dashboard')),
     getItem('Constraints', '2', <DesktopOutlined />, () => navigate('/constraints')),
     getItem('History', '9', <HistoryOutlined />, () => navigate('/history')),
+    getItem('Query Editor', '4', <DesktopOutlined />, () => navigate('/query-editor')),
   ];
 
   return (
@@ -60,6 +62,7 @@ const App: React.FC = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/constraints" element={<Constraints />} />
             <Route path="/history" element={<History />} />
+            <Route path="/query-editor" element={<QueryEditor />} />
             <Route path="/session/:sessionId" element={<SessionDetail />} />
           </Routes>
         </Content>
