@@ -45,10 +45,9 @@ const App: React.FC = () => {
   const items: MenuItem[] = [
     getItem('Dashboard', '1', <DashboardOutlined />, () => navigate('/dashboard')),
     getItem('Constraints', '2', <DesktopOutlined />, () => navigate('/constraints')),
-    getItem('History', '9', <HistoryOutlined />, () => navigate('/history')),
-    getItem('Query Editor', '4', <DesktopOutlined />, () => navigate('/query-editor')),
     getItem('History', '3', <HistoryOutlined />, () => navigate('/history')),
-    getItem('Mapping', '4', <ToolOutlined />, () => navigate('/mapping')),
+    getItem('Query Editor', '4', <DesktopOutlined />, () => navigate('/query-editor')),
+    getItem('Mapping', '5', <ToolOutlined />, () => navigate('/mapping')),
   ];
 
   return (
