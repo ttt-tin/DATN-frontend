@@ -206,6 +206,7 @@ const QueryEditor: React.FC = () => {
           <h3>Database Section</h3>
 
           {/* Catalog Selector */}
+          <h4>Catalog</h4>
           <Select
             placeholder="Select Catalog"
             value={selectedCatalog}
@@ -218,6 +219,7 @@ const QueryEditor: React.FC = () => {
           />
 
           {/* Database Selector */}
+          <h4>Database</h4>
           <Select
             placeholder="Select Database"
             value={selectedDatabase}
@@ -231,6 +233,7 @@ const QueryEditor: React.FC = () => {
           />
 
           {/* Table Selector */}
+          <h4>Table</h4>
           <Select
             placeholder="Select Table"
             style={{ width: "100%", marginBottom: "16px" }}

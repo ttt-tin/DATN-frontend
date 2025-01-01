@@ -1,30 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   DashboardOutlined,
   DesktopOutlined,
   HistoryOutlined,
   ToolOutlined,
-} from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import { Layout, Menu, theme } from 'antd';
-import { Route, Routes, useNavigate, Navigate } from 'react-router-dom';
-import Dashboard from './components/Dashboard.tsx';
-import Constraints from './components/Constraints.tsx';
-import History from './components/History.tsx';
-import SessionDetail from './components/SessionDetail.tsx';
-import QueryEditor from './components/QueryEditor.tsx';
-import Mapping from './components/Mapping.tsx';
+} from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { Layout, Menu, theme } from "antd";
+import { Route, Routes, useNavigate, Navigate } from "react-router-dom";
+import Dashboard from "./components/Dashboard.tsx";
+import Constraints from "./components/Constraints.tsx";
+import History from "./components/History.tsx";
+import SessionDetail from "./components/SessionDetail.tsx";
+import QueryEditor from "./components/QueryEditor.tsx";
+import Mapping from "./components/Mapping.tsx";
 
-const { Header, Content, Sider } = Layout;
+const { Header, Content, Footer, Sider } = Layout;
 
-type MenuItem = Required<MenuProps>['items'][number];
+type MenuItem = Required<MenuProps>["items"][number];
 
 function getItem(
   label: React.ReactNode,
   key: React.Key,
   icon?: React.ReactNode,
   onClick?: any,
-  children?: MenuItem[],
+  children?: MenuItem[]
 ): MenuItem {
   return {
     key,
@@ -43,22 +43,60 @@ const App: React.FC = () => {
   const navigate = useNavigate();
 
   const items: MenuItem[] = [
-    getItem('Dashboard', '1', <DashboardOutlined />, () => navigate('/dashboard')),
-    getItem('Constraints', '2', <DesktopOutlined />, () => navigate('/constraints')),
-    getItem('History', '3', <HistoryOutlined />, () => navigate('/history')),
-    getItem('Query Editor', '4', <DesktopOutlined />, () => navigate('/query-editor')),
-    getItem('Mapping', '5', <ToolOutlined />, () => navigate('/mapping')),
+    getItem("Dashboard", "1", <DashboardOutlined />, () =>
+      navigate("/dashboard")
+    ),
+    getItem("Constraints", "2", <DesktopOutlined />, () =>
+      navigate("/constraints")
+    ),
+    getItem("History", "3", <HistoryOutlined />, () => navigate("/history")),
+    getItem("Query Editor", "4", <DesktopOutlined />, () =>
+      navigate("/query-editor")
+    ),
+    getItem("Mapping", "5", <ToolOutlined />, () => navigate("/mapping")),
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+    <Layout style={{ minHeight: "100vh" }}>
+      {/* Sidebar */}
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={(value) => setCollapsed(value)}
+      >
         <div className="demo-logo-vertical" />
-        <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+        <Menu
+          theme="dark"
+          defaultSelectedKeys={["1"]}
+          mode="inline"
+          items={items}
+        />
       </Sider>
+
       <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer }} />
-        <Content style={{ margin: '0 16px' }}>
+        {/* Top Navbar */}
+        <Header
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            background: "#001529",
+            color: "#fff",
+            fontSize: "24px",
+            fontWeight: "bold",
+            height: "64px",
+          }}
+        >
+          BK-Health
+        </Header>
+        {/* Main Content */}
+        <Content
+          style={{
+            margin: "16px",
+            padding: "16px",
+            background: colorBgContainer,
+          }}
+        >
           <Routes>
             {/* Redirect from root to /dashboard */}
             <Route path="/" element={<Navigate to="/dashboard" />} />
@@ -70,6 +108,18 @@ const App: React.FC = () => {
             <Route path="/mapping" element={<Mapping />} />
           </Routes>
         </Content>
+
+        {/* Footer */}
+        <Footer
+          style={{
+            textAlign: "center",
+            background: "#001529",
+            color: "#fff",
+            padding: "10px 0",
+          }}
+        >
+          © {new Date().getFullYear()} BK-Health. All Rights Reserved.
+        </Footer>
       </Layout>
     </Layout>
   );

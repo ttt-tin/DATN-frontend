@@ -1,210 +1,207 @@
-import React, { useEffect, useState } from "react";
-import { Button, Select, Table, message } from "antd";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import React, { useState, useEffect } from "react";
+import {
+  AthenaClient,
+  ListDataCatalogsCommand,
+  ListDatabasesCommand,
+  ListTableMetadataCommand,
+  GetTableMetadataCommand,
+} from "@aws-sdk/client-athena";
+import { Select, Button, Input, Table, message } from "antd";
 import "./Mapping.css";
-import mappingService from "../services/mapping.ts";
 
 const Mapping: React.FC = () => {
-  const [customTables, setCustomTables] = useState<string[]>([]);
-  const [standardTables, setStandardTables] = useState<string[]>([]);
-  const [selectedCustomTable, setSelectedCustomTable] = useState<string>("");
-  const [selectedStandardTable, setSelectedStandardTable] = useState<string>("");
-  const [customColumns, setCustomColumns] = useState<string[]>([]);
-  const [standardColumns, setStandardColumns] = useState<string[]>([]);
-  const [mappings, setMappings] = useState<{ source: string; target: string }[]>([
-    { source: "", target: "" },
-  ]);
+  const [catalogs, setCatalogs] = useState<string[]>([]);
+  const [databases, setDatabases] = useState<string[]>([]);
+  const [tables, setTables] = useState<string[]>([]);
+  const [schema, setSchema] = useState<{ Name: string; Type: string }[]>([]);
+  const [mappings, setMappings] = useState<{ source: string; target: string }[]>(
+    []
+  );
 
-  // Fetch custom and standard tables on component mount
-  useEffect(() => {
-    const fetchTables = async () => {
-      try {
-        const [custom, standard] = await Promise.all([
-          mappingService.getCustomTables(""),
-          mappingService.getStandardTables(""),
-        ]);
-        setCustomTables(custom || []);
-        setStandardTables(standard || []);
-      } catch (error) {
-        message.error("Error fetching table options.");
-        console.error(error);
-      }
-    };
-    fetchTables();
-  }, []);
+  const [selectedCatalog, setSelectedCatalog] = useState<string>("");
+  const [selectedDatabase, setSelectedDatabase] = useState<string>("");
+  const [selectedTable, setSelectedTable] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch columns based on selected custom table
-  useEffect(() => {
-    const fetchCustomColumns = async () => {
-      if (!selectedCustomTable) return;
-      try {
-        const columns = await mappingService.getCustomColumns(selectedCustomTable);
-        setCustomColumns(columns || []);
-      } catch (error) {
-        message.error("Error fetching custom table columns.");
-        console.error(error);
-      }
-    };
-    fetchCustomColumns();
-  }, [selectedCustomTable]);
+  const athenaClient = new AthenaClient({
+    region: process.env.REACT_APP_AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.REACT_APP_AWS_ACCESS_KEY!,
+      secretAccessKey: process.env.REACT_APP_AWS_SECRET_KEY!,
+    },
+  });
 
-  // Fetch columns based on selected standard table
-  useEffect(() => {
-    const fetchStandardColumns = async () => {
-      if (!selectedStandardTable) return;
-      try {
-        const columns = await mappingService.getStandardColumns(selectedStandardTable);
-        setStandardColumns(columns || []);
-      } catch (error) {
-        message.error("Error fetching standard table columns.");
-        console.error(error);
-      }
-    };
-    fetchStandardColumns();
-  }, [selectedStandardTable]);
-
-  // Handle table selection
-  const handleCustomTableChange = (value: string) => setSelectedCustomTable(value);
-  const handleStandardTableChange = (value: string) => setSelectedStandardTable(value);
-
-  // Handle mapping change
-  const handleMappingChange = (
-    value: string,
-    index: number,
-    column: "source" | "target"
-  ) => {
-    const updatedMappings = [...mappings];
-    updatedMappings[index][column] = value;
-    setMappings(updatedMappings);
+  // Fetch catalogs
+  const fetchCatalogs = async () => {
+    try {
+      const command = new ListDataCatalogsCommand({});
+      const response = await athenaClient.send(command);
+      setCatalogs(
+        response.DataCatalogsSummary?.map((catalog) => catalog.CatalogName!) || []
+      );
+    } catch (err: any) {
+      console.error("Error fetching catalogs:", err);
+      setError(err.message || "Failed to fetch catalogs.");
+    }
   };
 
-  // Add a new mapping row
-  const handleAddMapping = () => setMappings([...mappings, { source: "", target: "" }]);
+  // Fetch databases
+  const fetchDatabases = async () => {
+    if (!selectedCatalog) return;
+    try {
+      const command = new ListDatabasesCommand({
+        CatalogName: selectedCatalog,
+      });
+      const response = await athenaClient.send(command);
+      setDatabases(response.DatabaseList?.map((db) => db.Name!) || []);
+    } catch (err: any) {
+      console.error("Error fetching databases:", err);
+      setError(err.message || "Failed to fetch databases.");
+    }
+  };
 
-  // Delete a mapping row
-  const handleDeleteMapping = (index: number) => {
-    if (mappings.length === 1) return;
-    setMappings(mappings.filter((_, i) => i !== index));
+  // Fetch tables
+  const fetchTables = async () => {
+    if (!selectedCatalog || !selectedDatabase) return;
+    try {
+      const command = new ListTableMetadataCommand({
+        CatalogName: selectedCatalog,
+        DatabaseName: selectedDatabase,
+      });
+      const response = await athenaClient.send(command);
+      setTables(response.TableMetadataList?.map((table) => table.Name!) || []);
+    } catch (err: any) {
+      console.error("Error fetching tables:", err);
+      setError(err.message || "Failed to fetch tables.");
+    }
+  };
+
+  // Fetch schema
+  const fetchSchema = async () => {
+    if (!selectedCatalog || !selectedDatabase || !selectedTable) return;
+    try {
+      const command = new GetTableMetadataCommand({
+        CatalogName: selectedCatalog,
+        DatabaseName: selectedDatabase,
+        TableName: selectedTable,
+      });
+      const response = await athenaClient.send(command);
+      const columns = response.TableMetadata?.Columns || [];
+      setSchema(columns);
+      setMappings(columns.map((col) => ({ source: col.Name, target: "" })));
+    } catch (err: any) {
+      console.error("Error fetching schema:", err);
+      setError(err.message || "Failed to fetch schema.");
+    }
   };
 
   // Save mappings
   const handleSave = async () => {
     try {
-      const payload = {
-        customTable: selectedCustomTable,
-        standardTable: selectedStandardTable,
-        mappings,
-      };
-      const result = await mappingService.createMappings(payload);
+      console.log("Mappings saved:", mappings);
       message.success("Mappings saved successfully.");
-      console.log(result);
     } catch (error) {
       message.error("Error saving mappings.");
-      console.error(error);
     }
   };
 
+  useEffect(() => {
+    fetchCatalogs();
+  }, []);
+
+  useEffect(() => {
+    fetchDatabases();
+  }, [selectedCatalog]);
+
+  useEffect(() => {
+    fetchTables();
+  }, [selectedDatabase]);
+
+  useEffect(() => {
+    fetchSchema();
+  }, [selectedTable]);
+
+  const handleMappingChange = (index: number, value: string) => {
+    const updatedMappings = [...mappings];
+    updatedMappings[index].target = value;
+    setMappings(updatedMappings);
+  };
+
   return (
-    <div className="constraints-container">
-      <div className="constraints-header">
-        <h2 className="constraints-title">Mapping</h2>
-        <Button
-          type="primary"
-          onClick={handleSave}
-          className="constraints-save-button"
-        >
-          Save
-        </Button>
-      </div>
-      <div className="constraints-select-container">
-        <Select
-          value={selectedCustomTable}
-          onChange={handleCustomTableChange}
-          placeholder="Select Custom Table"
-          style={{ width: 300, marginRight: 20 }}
-        >
-          {customTables.map((table) => (
-            <Select.Option key={table} value={table}>
-              {table}
-            </Select.Option>
-          ))}
-        </Select>
-        <Select
-          value={selectedStandardTable}
-          onChange={handleStandardTableChange}
-          placeholder="Select Standard Table"
-          style={{ width: 300 }}
-        >
-          {standardTables.map((table) => (
-            <Select.Option key={table} value={table}>
-              {table}
-            </Select.Option>
-          ))}
-        </Select>
+    <div className="mapping-container">
+      <div className="mapping-header">
+        <h2>Schema Mapping</h2>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <div className="selectors">
+          <Select
+            placeholder="Select Catalog"
+            style={{ width: 200, marginRight: 10 }}
+            onChange={(value) => setSelectedCatalog(value)}
+          >
+            {catalogs.map((catalog) => (
+              <Select.Option key={catalog} value={catalog}>
+                {catalog}
+              </Select.Option>
+            ))}
+          </Select>
+          <Select
+            placeholder="Select Database"
+            style={{ width: 200, marginRight: 10 }}
+            onChange={(value) => setSelectedDatabase(value)}
+            disabled={!selectedCatalog}
+          >
+            {databases.map((db) => (
+              <Select.Option key={db} value={db}>
+                {db}
+              </Select.Option>
+            ))}
+          </Select>
+          <Select
+            placeholder="Select Table"
+            style={{ width: 200 }}
+            onChange={(value) => setSelectedTable(value)}
+            disabled={!selectedDatabase}
+          >
+            {tables.map((table) => (
+              <Select.Option key={table} value={table}>
+                {table}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
       </div>
       <Table
         dataSource={mappings}
         columns={[
           {
-            title: "Source Column",
+            title: "Schema Column",
             dataIndex: "source",
             key: "source",
-            render: (text, _, index) => (
-              <Select
-                value={text}
-                onChange={(value) => handleMappingChange(value, index, "source")}
-                placeholder="Select source column"
-                style={{ width: "100%" }}
-              >
-                {customColumns.map((col) => (
-                  <Select.Option key={col} value={col}>
-                    {col}
-                  </Select.Option>
-                ))}
-              </Select>
-            ),
           },
           {
-            title: "Target Column",
+            title: "Mapped Column",
             dataIndex: "target",
             key: "target",
             render: (text, _, index) => (
-              <Select
+              <Input
+                placeholder="Enter mapping"
                 value={text}
-                onChange={(value) => handleMappingChange(value, index, "target")}
-                placeholder="Select target column"
-                style={{ width: "100%" }}
-              >
-                {standardColumns.map((col) => (
-                  <Select.Option key={col} value={col}>
-                    {col}
-                  </Select.Option>
-                ))}
-              </Select>
-            ),
-          },
-          {
-            title: "Actions",
-            key: "actions",
-            render: (_, __, index) => (
-              <Button
-                type="link"
-                icon={<DeleteOutlined />}
-                onClick={() => handleDeleteMapping(index)}
-                danger
-                disabled={mappings.length === 1}
+                onChange={(e) => handleMappingChange(index, e.target.value)}
               />
             ),
           },
         ]}
-        rowKey={(record, index) => index.toString()}
+        rowKey="source"
         pagination={false}
-        footer={() => (
-          <Button type="link" icon={<PlusOutlined />} onClick={handleAddMapping}>
-            Add Mapping
-          </Button>
-        )}
+        style={{ marginTop: 20 }}
       />
+      <Button
+        type="primary"
+        onClick={handleSave}
+        style={{ marginTop: 20, display: "block" }}
+      >
+        Save Mappings
+      </Button>
     </div>
   );
 };
