@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   DashboardOutlined,
   DesktopOutlined,
+  FolderOpenOutlined,
   HistoryOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
@@ -14,6 +15,7 @@ import History from "./components/History.tsx";
 import SessionDetail from "./components/SessionDetail.tsx";
 import QueryEditor from "./components/QueryEditor.tsx";
 import Mapping from "./components/Mapping.tsx";
+import Volume from "./components/Volume.tsx";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -54,6 +56,7 @@ const App: React.FC = () => {
       navigate("/query-editor")
     ),
     getItem("Mapping", "5", <ToolOutlined />, () => navigate("/mapping")),
+    getItem("Volume", "6", <FolderOpenOutlined />, () => navigate("/volume")),
   ];
 
   return (
@@ -106,6 +109,7 @@ const App: React.FC = () => {
             <Route path="/query-editor" element={<QueryEditor />} />
             <Route path="/session/:sessionId" element={<SessionDetail />} />
             <Route path="/mapping" element={<Mapping />} />
+            <Route path="/volume" element={<Volume />} />
           </Routes>
         </Content>
 
