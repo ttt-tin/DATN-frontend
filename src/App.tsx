@@ -16,6 +16,7 @@ import SessionDetail from "./components/SessionDetail.tsx";
 import QueryEditor from "./components/QueryEditor.tsx";
 import Mapping from "./components/Mapping.tsx";
 import Volume from "./components/Volume.tsx";
+import UniversalKey from "./components/UniversalKey.tsx";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -57,6 +58,7 @@ const App: React.FC = () => {
     ),
     getItem("Mapping", "5", <ToolOutlined />, () => navigate("/mapping")),
     getItem("Volume", "6", <FolderOpenOutlined />, () => navigate("/volume")),
+    getItem("Universal Key", "7", <FolderOpenOutlined />, () => navigate("/universal-key")),
   ];
 
   return (
@@ -110,6 +112,7 @@ const App: React.FC = () => {
             <Route path="/session/:sessionId" element={<SessionDetail />} />
             <Route path="/mapping" element={<Mapping />} />
             <Route path="/volume" element={<Volume />} />
+            <Route path="/universal-key" element={<UniversalKey />} />
           </Routes>
         </Content>
 

@@ -11,7 +11,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { message } from "antd";
-import { BlobServiceClient } from "@azure/storage-blob";
+import { BlobServiceClient, StorageSharedKeyCredential } from "@azure/storage-blob";
 
 // Initialize Athena client
 export const athenaClient = new AthenaClient({
@@ -125,7 +125,7 @@ export const createVolume = async (bucketName: string, volumeName: string) => {
 
   const command = new PutObjectCommand({
     Bucket: bucketName,
-    Key: `unstructured-data/${volumeName}/`, // S3 folders are created by adding a trailing "/"
+    Key: `unstructure/${volumeName}/`, // S3 folders are created by adding a trailing "/"
   });
 
   try {
@@ -152,7 +152,7 @@ export const handleFileUpload = async (
     throw new Error("Volume name cannot be empty.");
   }
 
-  const objectKey = `unstructured-data/${volumeName}/${file.name}`;
+  const objectKey = `unstructure/${volumeName}/${file.name}`;
 
   try {
     // Convert the file to a Uint8Array
@@ -186,26 +186,26 @@ export const connectToExternalStorage = async ({
   accessKey,
   secretKey,
   region,
+  accountName,
   containerName,
   sasToken,
-  sasUrl,
 }): Promise<FileMetadata[]> => {
   const metadata: FileMetadata[] = [];
 
-  if (provider.toLowerCase() === "aws s3") {
-    if (!bucketName || !accessKey || !secretKey || !region) {
-      throw new Error("Missing required information for AWS S3 connection.");
-    }
+  try {
+    if (provider.toLowerCase() === "aws s3") {
+      if (!bucketName || !accessKey || !secretKey || !region) {
+        throw new Error("Missing required information for AWS S3 connection.");
+      }
 
-    const externalS3Client = new S3Client({
-      region,
-      credentials: {
-        accessKeyId: accessKey,
-        secretAccessKey: secretKey,
-      },
-    });
+      const externalS3Client = new S3Client({
+        region,
+        credentials: {
+          accessKeyId: accessKey,
+          secretAccessKey: secretKey,
+        },
+      });
 
-    try {
       const command = new ListObjectsV2Command({
         Bucket: bucketName,
       });
@@ -215,50 +215,40 @@ export const connectToExternalStorage = async ({
         metadata.push(
           ...response.Contents.map((file) => ({
             key: file.Key || "",
-            size: file.Size || 0, // Provide default size if undefined
+            size: file.Size || 0,
             lastModified: file.LastModified
               ? new Date(file.LastModified)
-              : new Date(), // Ensure lastModified is always a Date
+              : new Date(),
           }))
         );
       }
-    } catch (err) {
-      console.error("Error connecting to AWS S3:", err);
-      throw new Error("Failed to fetch metadata from AWS S3.");
-    }
-  } else if (provider.toLowerCase() === "azure blob") {
-    if (!sasToken || !sasUrl) {
-      throw new Error(
-        "Missing required information for Azure Blob Storage connection using SAS."
+    } else if (provider.toLowerCase() === "azure blob") {
+      if (!sasToken || !containerName) {
+        throw new Error(
+          "Missing required information for Azure Blob Storage connection."
+        );
+      }
+
+      const blobServiceUrl = `https://${accountName}.blob.core.windows.net/${containerName}?${sasToken}`;
+      const containerClient = new BlobServiceClient(blobServiceUrl).getContainerClient(
+        containerName
       );
-    }
 
-    try {
-      // Combine SAS URL with SAS token for access to the blob storage
-      const containerClient = new BlobServiceClient(
-        `${sasUrl}?${sasToken}`
-      ).getContainerClient(containerName);
-
-      // List blobs in the container
-      const blobs = containerClient.listBlobsFlat();
-
-      for await (const blob of blobs) {
+      for await (const blob of containerClient.listBlobsFlat()) {
         metadata.push({
           key: blob.name,
-          size: blob.properties.contentLength || 0, // Provide default size if undefined
+          size: blob.properties.contentLength || 0,
           lastModified: blob.properties.lastModified
             ? new Date(blob.properties.lastModified)
-            : new Date(), // Ensure lastModified is always a Date
+            : new Date(),
         });
       }
-    } catch (err) {
-      console.error("Error connecting to Azure Blob Storage with SAS:", err);
-      throw new Error(
-        "Failed to fetch metadata from Azure Blob Storage using SAS."
-      );
+    } else {
+      throw new Error(`Provider "${provider}" is not supported.`);
     }
-  } else {
-    throw new Error(`Provider "${provider}" is not supported.`);
+  } catch (err) {
+    console.error(`Error connecting to ${provider}:`, err);
+    throw new Error(`Failed to fetch metadata from ${provider}.`);
   }
 
   return metadata;
@@ -284,7 +274,7 @@ export const insertMetadataToInternalS3 = async (
     for (const query of insertQueries) {
       await executeAthenaQuery(
         "AwsDataCatalog",
-        "unstructured-metadata-db",
+        "metadata-db",
         query
       );
     }

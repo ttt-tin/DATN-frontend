@@ -30,7 +30,7 @@ const DownloadFile = ({ objectKey }) => {
 
   const handleDownload = async () => {
     setLoading(true);
-    const bucketName = "bk-health-landing-bucket";
+    const bucketName = "bk-health-bucket-landing";
     const fileKey = objectKey;
     console.log(fileKey);
 
