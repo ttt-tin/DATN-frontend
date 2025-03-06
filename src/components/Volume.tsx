@@ -30,9 +30,12 @@ const Volume: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isUploadFileModalOpen, setIsUploadFileModalOpen] = useState(false);
   const [uploadFields, setUploadFields] = useState<string[]>([]);
+  const [azureContainer, setAzureContainer] = useState("");
+  const [azureConnectionString, setAzureConnectionString] = useState("");
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isCreateVolumeModalOpen, setIsCreateVolumeModalOpen] = useState(false);
-  const [isCreateExternalVolumeModalOpen, setIsCreateExternalVolumeModalOpen] = useState(false);
+  const [isCreateExternalVolumeModalOpen, setIsCreateExternalVolumeModalOpen] =
+    useState(false);
   const [newVolumeName, setNewVolumeName] = useState("");
   const [uploadInfo, setUploadInfo] = useState({
     description: "",
@@ -55,33 +58,79 @@ const Volume: React.FC = () => {
   const handleTableSelect = async (tableName: string) => {
     setLoading(true);
     setSelectedTable(tableName);
+
     try {
-      const query = `SELECT * FROM ${tableName} LIMIT 100`;
-      const data = await executeAthenaQuery(
-        "AwsDataCatalog",
-        "metadata-db",
-        query
-      );
-      if (data.length > 0) {
-        const columnNames = Object.keys(data[0]);
-        setColumns([
-          ...columnNames.map((name) => ({
-            title: name,
-            dataIndex: name,
-            key: name,
-          })),
-          {
-            title: "Actions",
-            key: "actions",
-            render: (_, record) => (
-              <DownloadFile objectKey={"unstructure/" + tableName.replace(/_volume_table$/, "") + "/" + record["file_name"]} />
-            ),
-          },
-        ]);
-        setRecords(data);
+      if (tableName.endsWith("_external_volume_table")) {
+        // 🔹 Call external volume API
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/external-volume/files/${tableName}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to fetch external volume data."
+          );
+        }
+
+        if (data.length > 0) {
+          const columnNames = Object.keys(data[0]);
+          setColumns([
+            ...columnNames.map((name) => ({
+              title: name,
+              dataIndex: name,
+              key: name,
+            })),
+            {
+              title: "Actions",
+              key: "actions",
+              render: (_, record) => (
+                <DownloadFile objectKey={record.file_path} />
+              ),
+            },
+          ]);
+          setRecords(data);
+        } else {
+          setColumns([]);
+          setRecords([]);
+        }
       } else {
-        setColumns([]);
-        setRecords([]);
+        // 🔹 Fetch from Athena as before
+        const query = `SELECT * FROM ${tableName} LIMIT 100`;
+        const data = await executeAthenaQuery(
+          "AwsDataCatalog",
+          "metadata-db",
+          query
+        );
+
+        if (data.length > 0) {
+          const columnNames = Object.keys(data[0]);
+          setColumns([
+            ...columnNames.map((name) => ({
+              title: name,
+              dataIndex: name,
+              key: name,
+            })),
+            {
+              title: "Actions",
+              key: "actions",
+              render: (_, record) => (
+                <DownloadFile
+                  objectKey={
+                    "unstructure/" +
+                    tableName.replace(/_volume_table$/, "") +
+                    "/" +
+                    record["file_name"]
+                  }
+                />
+              ),
+            },
+          ]);
+          setRecords(data);
+        } else {
+          setColumns([]);
+          setRecords([]);
+        }
       }
     } catch (err) {
       console.error("Error fetching table data:", err);
@@ -96,8 +145,20 @@ const Volume: React.FC = () => {
       message.error("Please select a volume first.");
       return;
     }
+  
+    // Check if the table is an external volume
+    const isExternalVolume = selectedTable.endsWith("_external_volume_table");
+  
+    if (isExternalVolume) {
+      setIsUploadFileModalOpen(true);
+      return;
+    }
+
     try {
-      const response = await fetch(process.env.REACT_APP_API_URL + `/athena/metadata?table_name=patient_repaired`);
+      const response = await fetch(
+        process.env.REACT_APP_API_URL +
+          `/athena/metadata?table_name=patient_repaired`
+      );
       const metadata = await response.json();
       const columns = metadata.column_name.split(",");
       setUploadFields([...columns, "patient_id"]);
@@ -114,47 +175,72 @@ const Volume: React.FC = () => {
   };
 
   const handleFileUploadWrapper = async () => {
-    if (!selectedTable || !fileToUpload) {
-      message.error("Please select a volume and a file.");
-      return;
-    }
-    if (!Object.values(uploadInfo).some((value) => value.trim() !== "")) {
-      message.error("Please fill at least one field.");
-      return;
-    }
-  
-    try {
-      const formData = new FormData();
-      formData.append("file", fileToUpload);
+  if (!selectedTable || !fileToUpload) {
+    message.error("Please select a volume and a file.");
+    return;
+  }
+
+  // Check if the table is an external volume
+  const isExternalVolume = selectedTable.endsWith("_external_volume_table");
+
+  try {
+    const formData = new FormData();
+    formData.append("file", fileToUpload);
+
+    if (isExternalVolume) {
+      // Call external storage upload API
+      const response = await fetch(
+        process.env.REACT_APP_API_URL + `/external-volume/upload/${selectedTable}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "File upload to external storage failed.");
+      }
+
+      message.success("File uploaded successfully to external storage.");
+    } else {
+      // Standard upload process
       formData.append("volume", selectedTable);
-  
+
       // Append additional fields
       Object.keys(uploadInfo).forEach((key) => {
         if (uploadInfo[key].trim() !== "") {
           formData.append(key, uploadInfo[key]);
         }
       });
-  
-      const response = await fetch(process.env.REACT_APP_API_URL + "/upload/upload-file", {
-        method: "POST",
-        body: formData,
-      });
-  
+
+      const response = await fetch(
+        process.env.REACT_APP_API_URL + "/upload/upload-file",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
       const result = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(result.message || "File upload failed.");
       }
-  
+
       message.success("File uploaded successfully.");
-      setIsUploadFileModalOpen(false);
-      setFileToUpload(null);
-      setUploadInfo({ patient_id: "" });
-    } catch (err) {
-      console.error("Error uploading file:", err);
-      message.error(err.message || "Failed to upload file.");
     }
-  };
+
+    // Reset modal and file states
+    setIsUploadFileModalOpen(false);
+    setFileToUpload(null);
+    setUploadInfo({ patient_id: "" });
+  } catch (err) {
+    console.error("Error uploading file:", err);
+    message.error(err.message || "Failed to upload file.");
+  }
+};
 
   const handleCreateVolume = async () => {
     try {
@@ -165,6 +251,33 @@ const Volume: React.FC = () => {
     } catch (err) {
       console.error("Error creating volume:", err);
       message.error("Failed to create volume.");
+    }
+  };
+
+  const handleCreateExternalVolume = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/external-volume/create`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            volumeName: newVolumeName,
+            containerName: azureContainer,
+            connectionString: azureConnectionString,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create external volume.");
+      }
+
+      message.success("External volume created successfully.");
+      setIsCreateExternalVolumeModalOpen(false);
+    } catch (error) {
+      console.error("Error creating external volume:", error);
+      message.error(error.message);
     }
   };
 
@@ -225,6 +338,32 @@ const Volume: React.FC = () => {
           placeholder="Enter volume name"
           value={newVolumeName}
           onChange={(e) => setNewVolumeName(e.target.value)}
+        />
+      </Modal>
+
+      <Modal
+        title="Create External Volume"
+        visible={isCreateExternalVolumeModalOpen}
+        onOk={handleCreateExternalVolume}
+        onCancel={() => setIsCreateExternalVolumeModalOpen(false)}
+      >
+        <Input
+          placeholder="Enter volume name"
+          value={newVolumeName}
+          onChange={(e) => setNewVolumeName(e.target.value)}
+          style={{ marginTop: "16px" }}
+        />
+        <Input
+          placeholder="Azure Container Name"
+          value={azureContainer}
+          onChange={(e) => setAzureContainer(e.target.value)}
+          style={{ marginTop: "16px" }}
+        />
+        <Input
+          placeholder="Azure Connection String"
+          value={azureConnectionString}
+          onChange={(e) => setAzureConnectionString(e.target.value)}
+          style={{ marginTop: "16px" }}
         />
       </Modal>
 
