@@ -9,6 +9,7 @@ import {
   Input,
   Upload,
   Form,
+  Typography,
 } from "antd";
 import { PlusOutlined, UploadOutlined, CloudOutlined } from "@ant-design/icons";
 import {
@@ -20,6 +21,7 @@ import {
   insertMetadataToInternalS3,
 } from "../utils/athenaUtil.ts";
 import DownloadFile from "./downloadFileButton.tsx";
+const { Title } = Typography;
 
 const Volume: React.FC = () => {
   const [error, setError] = useState("");
@@ -283,7 +285,9 @@ const Volume: React.FC = () => {
 
   return (
     <div style={{ padding: "16px" }}>
-      <h2>Volume Explorer</h2>
+      <Title level={2} style={{ marginBottom: "20px" }}>
+        Volume Explorer
+      </Title>
       <div style={{ marginBottom: "16px" }}>
         <Button
           type="primary"

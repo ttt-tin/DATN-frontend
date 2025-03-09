@@ -6,8 +6,10 @@ import {
   ListTableMetadataCommand,
   GetTableMetadataCommand,
 } from "@aws-sdk/client-athena";
-import { Select, Button, Input, Table, message } from "antd";
+import { Select, Button, Input, Table, message, Typography } from "antd";
 import "./Mapping.css";
+
+const { Title } = Typography;
 
 const Mapping: React.FC = () => {
   const [catalogs, setCatalogs] = useState<string[]>([]);
@@ -130,7 +132,9 @@ const Mapping: React.FC = () => {
   return (
     <div className="mapping-container">
       <div className="mapping-header">
-        <h2>Schema Mapping</h2>
+      <Title level={2} style={{ marginBottom: "20px" }}>
+        Data Mapping
+      </Title>
         {error && <p style={{ color: "red" }}>{error}</p>}
         <div className="selectors">
           <Select

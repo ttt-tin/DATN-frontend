@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Select, Table, Spin, Collapse, Card } from "antd";
+import { Button, Select, Table, Spin, Collapse, Card, Typography } from "antd";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-sql";
 import "ace-builds/src-noconflict/theme-monokai";
@@ -15,6 +15,7 @@ import {
 } from "@aws-sdk/client-athena";
 
 const { Panel } = Collapse;
+const { Title } = Typography;
 
 const QueryEditor: React.FC = () => {
   const [catalogs, setCatalogs] = useState<string[]>([]);
@@ -183,9 +184,9 @@ const QueryEditor: React.FC = () => {
   return (
     <div style={{ padding: "16px" }}>
       {/* Title Section */}
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+      <Title level={2} style={{ marginBottom: "20px" }}>
         Athena Query Editor
-      </h2>
+      </Title>
 
       {/* Main Content Section with Flexbox */}
       <div
