@@ -8,6 +8,7 @@ import {
 } from "@aws-sdk/client-athena";
 import { Select, Button, Input, Table, message } from "antd";
 import "./Mapping.css";
+import mappingServiceInstance from "../services/mapping.ts";
 
 const Mapping: React.FC = () => {
   const [catalogs, setCatalogs] = useState<string[]>([]);
@@ -98,8 +99,25 @@ const Mapping: React.FC = () => {
   // Save mappings
   const handleSave = async () => {
     try {
-      console.log("Mappings saved:", mappings);
-      message.success("Mappings saved successfully.");
+      const data: any[] = [];
+      mappings.map((mapping: any) => {
+        if (mapping?.target) {
+          data.push({
+            dbName: selectedDatabase,
+            dbTable: selectedTable,
+            dbColumn: mapping.target,
+            standardColumn: mapping.source,
+          })
+        }
+      })
+      console.log("data saved:", data);
+      const res = await mappingServiceInstance.createMappings(data);
+      if (res.success) {
+        message.success("Mappings saved successfully.");
+      }
+      else {
+        message.error(res.message);
+      }
     } catch (error) {
       message.error("Error saving mappings.");
     }
