@@ -60,23 +60,47 @@ const UniversalKey = () => {
 
   useEffect(() => {
     if (!selectedTable) return;
-    const fetchSchema = async () => {
+
+    const fetchSchemaAndData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const command = new GetTableMetadataCommand({
+        // Fetch table schema
+        const schemaCommand = new GetTableMetadataCommand({
           CatalogName: "AwsDataCatalog",
           DatabaseName: selectedDatabase,
           TableName: selectedTable,
         });
-        const response = await athenaClient.send(command);
-        setSchema(response.TableMetadata?.Columns || []);
+        const schemaResponse = await athenaClient.send(schemaCommand);
+        const schemaData = schemaResponse.TableMetadata?.Columns || [];
+        setSchema(schemaData);
+
+        // Fetch pre-selected data from the API
+        const dataResponse = await fetch(
+          `${process.env.REACT_APP_API_URL}/athena/data?catalog=AwsDataCatalog&database=hospital_data&table=tables`
+        );
+        if (!dataResponse.ok) {
+          throw new Error("Failed to fetch data");
+        }
+        const data = await dataResponse.json();
+
+        // Find the entry matching the selected table and parse column_name
+        const tableEntry = data.find(
+          (item: any) => item.table_name === selectedTable
+        );
+        if (tableEntry && tableEntry.column_name) {
+          const preSelectedColumns = tableEntry.column_name.split(",");
+          setSupportKeys(preSelectedColumns);
+        } else {
+          setSupportKeys([]); // Reset if no matching table or no columns
+        }
       } catch (err) {
-        console.error("Error fetching schema:", err);
+        console.error("Error fetching schema or data:", err);
+        message.error("Error loading table data");
       } finally {
         setLoading(false);
       }
     };
-    fetchSchema();
+    fetchSchemaAndData();
   }, [selectedTable]);
 
   const handleSupportKeyChange = (key: string) => {
@@ -92,13 +116,16 @@ const UniversalKey = () => {
     };
 
     try {
-      const response = await fetch(process.env.REACT_APP_API_URL + "/athena/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/athena/create`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestData),
+        }
+      );
 
       const result = await response.json();
       if (response.ok) {
@@ -169,7 +196,11 @@ const UniversalKey = () => {
               ]}
             />
 
-            <Button type="primary" onClick={handleSubmit} style={{ marginTop: 10 }}>
+            <Button
+              type="primary"
+              onClick={handleSubmit}
+              style={{ marginTop: 10 }}
+            >
               Submit
             </Button>
           </>
