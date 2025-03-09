@@ -39,19 +39,33 @@ const Explorer: React.FC = () => {
           process.env.REACT_APP_API_URL + "/explorer/tables/metadata-db"
         );
 
-        const structureTables = structureRes.data.map((table: string) => ({
-          title: table,
-          key: `structure-${table}`,
-          isLeaf: true,
-          database: "hospital_data",
-        }));
+        // Filter and process structure tables (only those ending with "_repaired")
+        const structureTables = structureRes.data
+          .filter((table: string) => table.endsWith("_repaired"))
+          .map((table: string) => ({
+            title: table.replace("_repaired", ""), // Remove "_repaired" for display
+            key: `structure-${table}`,
+            isLeaf: true,
+            database: "hospital_data",
+            originalName: table, // Store original name for API calls
+          }));
 
-        const unstructureTables = unstructureRes.data.map((table: string) => ({
-          title: table,
-          key: `unstructure-${table}`,
-          isLeaf: true,
-          database: "metadata-db",
-        }));
+        // Process unstructure tables (remove "_volume_table" or "_external_volume_table")
+        const unstructureTables = unstructureRes.data.map((table: string) => {
+          let displayName = table;
+          if (table.endsWith("_volume_table")) {
+            displayName = table.replace("_volume_table", "");
+          } else if (table.endsWith("_external_volume_table")) {
+            displayName = table.replace("_external_volume_table", "");
+          }
+          return {
+            title: displayName, // Display name without postfix
+            key: `unstructure-${table}`,
+            isLeaf: true,
+            database: "metadata-db",
+            originalName: table, // Store original name for API calls
+          };
+        });
 
         setTreeData([
           { title: "Structure", key: "structure", children: structureTables },
@@ -73,7 +87,9 @@ const Explorer: React.FC = () => {
 
   const onSelect = async (selectedKeys: React.Key[], info: any) => {
     if (info.node.isLeaf) {
-      setSelectedTable(info.node.title);
+      const originalTableName = info.node.originalName; // Use the original name for API call
+      const displayTableName = info.node.title; // Use the cleaned name for display
+      setSelectedTable(displayTableName);
       setSchemaLoading(true);
       setTableSchema([]);
       setUnstructuredInfo(null);
@@ -81,7 +97,7 @@ const Explorer: React.FC = () => {
       try {
         const res = await axios.get(
           process.env.REACT_APP_API_URL +
-            `/explorer/table-info/${info.node.database}/${info.node.title}`
+            `/explorer/table-info/${info.node.database}/${originalTableName}`
         );
 
         if (info.node.database === "hospital_data") {
@@ -100,29 +116,21 @@ const Explorer: React.FC = () => {
 
   return (
     <div style={{ padding: "20px", width: "100%" }}>
-           {" "}
       <Title level={2} style={{ marginBottom: "20px" }}>
         Data Explorer
       </Title>
-           {" "}
       <div
         style={{
           display: "flex",
-
           flexDirection: "row",
-
           padding: "20px",
-
           borderRadius: "10px",
-
           boxShadow: "0px 4px 10px rgba(0,0,0,0.1)",
-
           minHeight: "500px",
-
           width: "100%",
         }}
       >
-                {/* Left Side - File Tree */}       {" "}
+        {/* Left Side - File Tree */}
         <div
           style={{
             flex: 1,
@@ -130,7 +138,6 @@ const Explorer: React.FC = () => {
             borderRight: "1px solid #ddd",
           }}
         >
-                   {" "}
           {loading ? (
             <Spin size="large" style={{ display: "block", margin: "auto" }} />
           ) : (
@@ -141,27 +148,20 @@ const Explorer: React.FC = () => {
               onSelect={onSelect}
               style={{
                 background: "#fafafa",
-
                 padding: "10px",
-
                 borderRadius: "5px",
-
                 height: "100%",
-
                 overflow: "auto",
               }}
             />
           )}
-                 {" "}
         </div>
-                {/* Right Side - Schema or Unstructured Info Display */}       {" "}
+        {/* Right Side - Schema or Unstructured Info Display */}
         <div style={{ flex: 2, paddingLeft: "20px" }}>
-                   {" "}
           {schemaLoading ? (
             <Spin size="large" style={{ display: "block", margin: "auto" }} />
           ) : selectedTable ? (
             <Card title={`Details for ${selectedTable}`} bordered>
-                           {" "}
               {unstructuredInfo ? (
                 <Table
                   dataSource={[
@@ -199,18 +199,14 @@ const Explorer: React.FC = () => {
                   pagination={false}
                 />
               )}
-                         {" "}
             </Card>
           ) : (
             <p style={{ textAlign: "center", color: "#888", fontSize: "16px" }}>
-                            Select a table to view its details            {" "}
+              Select a table to view its details
             </p>
           )}
-                 {" "}
         </div>
-             {" "}
       </div>
-         {" "}
     </div>
   );
 };

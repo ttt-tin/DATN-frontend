@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Button, Form, Input, Space, message } from "antd";
+import { Button, Form, Input, Space, Typography, message } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+
+const { Title } = Typography;
 
 const Relation: React.FC = () => {
   const [form] = Form.useForm();
@@ -88,7 +90,9 @@ const Relation: React.FC = () => {
 
   return (
     <div>
-      <h2>Define Relations</h2>
+      <Title level={2} style={{ marginBottom: "20px" }}>
+        Relation
+      </Title>
       <Form
         form={form}
         name="relations_form"

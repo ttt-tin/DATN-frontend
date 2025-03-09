@@ -59,7 +59,7 @@ const App: React.FC = () => {
     getItem("Mapping", "/mapping", <ToolOutlined />, () => navigate("/mapping")),
     getItem("Volume", "/volume", <FolderOpenOutlined />, () => navigate("/volume")),
     getItem("Universal Key", "/universal-key", <FolderOpenOutlined />, () => navigate("/universal-key")),
-    getItem("Visualization", "/visualization", <BarChartOutlined />, () => navigate("/visualization")),
+    // getItem("Visualization", "/visualization", <BarChartOutlined />, () => navigate("/visualization")),
     getItem("Relation", "/relation", <LinkOutlined />, () => navigate("/relation")), // 👈 New Relation menu item
   ];
 
