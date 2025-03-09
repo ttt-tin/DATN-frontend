@@ -162,6 +162,44 @@ const Dashboard: React.FC = () => {
     }, 2000);
   };
 
+  const getHistory = async () => {
+    try {
+      const result = await historyServiceInstance.get();
+      setSessionDatas(result);
+      console.log(result)
+    }
+    catch (error) {
+      message.error(error.message);
+    }
+  }
+
+  const runCleaningService = async () => {
+    try {
+      message.info('Cleaning service is running...')
+      setSessionDatas((prev) => {
+        const maxId = prev.length > 0 ? Math.max(...prev.map(item => item.id)) : 0;
+      
+        return [
+          ...prev,
+          {
+            id: maxId + 1,  // Increment the max ID for the new entry
+            status: 'Running',
+            time: new Date().toISOString(),  // Using ISO string format for time
+          }
+        ];
+      });
+      
+      const res = await runScriptInstance.run();
+      if (res) {
+        message.success('Run success');
+      }
+    }
+    catch (error) {
+      message.error(error.message)
+    }
+  }
+
+
   return (
     <div>
       <Title level={2} style={{ marginBottom: "20px" }}>

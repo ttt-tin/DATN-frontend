@@ -7,7 +7,7 @@ class MappingService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = `${process.env.API_URL}/mapping`;
+    this.baseUrl = `${process.env.REACT_APP_API_URL}/mappings`;
   }
 
   async getStandardTables(table: string): Promise<any> {
@@ -50,14 +50,16 @@ class MappingService {
     }
   }
 
-  async createMappings(payload: any): Promise<any> {
+  async createMappings(payload: any[]): Promise<any> {
     try {
-      
+      const response = await axios.post(`${this.baseUrl}`, payload);
+      return response.data;
     } catch (error) {
       console.error('Error while creating mappings:', error.message);
-      throw error
+      throw error;
     }
   }
+  
 }
 
 const mappingServiceInstance = new MappingService();

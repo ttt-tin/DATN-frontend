@@ -4,7 +4,7 @@ class ContraintsService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = `${process.env.API_URL}/constraint`;
+    this.baseUrl = `${process.env.REACT_APP_API_URL}/constraint`;
   }
 
   async create(constraintData: string, constraintTable: string): Promise<any> {
