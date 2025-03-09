@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Tag, Button, message } from 'antd';
+import { Table, Tag, Button, Typography, message } from 'antd';
+
+const { Title } = Typography;
 import historyServiceInstance from '../services/history.ts';
 
 const History: React.FC = () => {
@@ -96,7 +98,9 @@ const History: React.FC = () => {
 
   return (
     <div>
-      <h2>Session History</h2>
+      <Title level={2} style={{ marginBottom: "20px" }}>
+        History
+      </Title>
       <Table columns={columns} dataSource={sessionHistory} pagination={{ pageSize: 5 }} />
     </div>
   );

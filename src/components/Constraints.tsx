@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Button, Input, Space, message } from "antd";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import "./Constraints.css"; // Add a corresponding CSS file
-import constraintService from '../services/contraints.ts'
+import { Button, Input, Space, message, Typography } from "antd";
+import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import constraintService from "../services/contraints.ts";
+
+const { Title } = Typography;
 
 const Constraints: React.FC = () => {
   const [inputs, setInputs] = useState<string[]>([""]); // Array to hold input values
@@ -31,7 +32,7 @@ const Constraints: React.FC = () => {
     setInputs(updatedInputs);
   };
 
-  const handleContraintTable = (value: string) => {
+  const handleConstraintTable = (value: string) => {
     setConstraintTable(value);
   };
 
@@ -40,64 +41,58 @@ const Constraints: React.FC = () => {
     const concatenatedString = inputs.join("\n"); // Join all inputs with newline characters
     try {
       const result = await constraintService.create(concatenatedString, constraintTable);
-
-      console.log(result)
+      console.log(result);
     } catch (error) {
       message.error("Error saving data.");
       console.error(error);
     }
   };
 
+  // Handler to add a new input at the bottom
+  const handleAddInput = () => {
+    setInputs([...inputs, ""]);
+  };
+
   return (
-    <div className="constraints-container">
-      <div className="constraints-header">
-        <h2 className="constraints-title">Constraints</h2>
-        <Button
-          type="link"
-          onClick={handleSave}
-          className="constraints-save-button"
-        >
+    <div style={{ width: "100%" }}>
+      <Space style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, width: "100%" }}>
+        <h2>Constraint Configuration</h2>
+        <Button type="primary" onClick={handleSave}>
           Save
         </Button>
-      </div>
-      <Space
-        direction="vertical"
-        className="constraints-space"
-        style={{ marginRight: 500, marginBottom: 10 }}
-      >
+      </Space>
+      <Space direction="vertical" style={{ width: "100%", marginBottom: 16 }}>
         <Input
           value={constraintTable}
-          onChange={(e) => handleContraintTable(e.target.value)}
-          placeholder={`Constraint tables`}
-          className="constraints-input"
+          onChange={(e) => handleConstraintTable(e.target.value)}
+          placeholder="Constraint tables"
+          style={{ width: "100%" }}
         />
       </Space>
-      <Space direction="vertical" className="constraints-space">
+      <Space direction="vertical" style={{ width: "100%", marginBottom: 16 }}>
         {inputs.map((input, index) => (
-          <div key={index} className="constraints-input-row">
+          <div key={index} style={{ display: "flex", width: "100%", marginBottom: 8, alignItems: "center" }}>
             <Input
               value={input}
               onChange={(e) => handleInputChange(e.target.value, index)}
               placeholder={`Constraint ${index + 1}`}
-              className="constraints-input"
+              style={{ flex: 1, width: "100%" }}
             />
-            <Button
-              type="link"
-              icon={<PlusOutlined />}
-              onClick={() => handleAddInputBelow(index)}
-              className="constraints-add-button"
-            />
-            <Button
-              type="link"
-              icon={<DeleteOutlined />}
+            <MinusCircleOutlined
               onClick={() => handleDeleteInput(index)}
-              className="constraints-delete-button"
-              danger
-              disabled={inputs.length === 1} // Disable the delete button if there is only one input
+              style={{ color: inputs.length === 1 ? "#d9d9d9" : "red", marginLeft: 8 }}
             />
           </div>
         ))}
       </Space>
+      <Button
+        type="dashed"
+        onClick={handleAddInput}
+        block
+        icon={<PlusOutlined />}
+      >
+        Add Constraint
+      </Button>
     </div>
   );
 };
