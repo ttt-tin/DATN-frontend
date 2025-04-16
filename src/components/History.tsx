@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Tag, Button, Typography, message } from 'antd';
+import historyServiceInstance from '../services/history.ts';
 
 const { Title } = Typography;
-import historyServiceInstance from '../services/history.ts';
 
 const History: React.FC = () => {
   const navigate = useNavigate();

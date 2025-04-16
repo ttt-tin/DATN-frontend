@@ -50,6 +50,16 @@ class MappingService {
     }
   }
 
+  async getTableMapping(table: string, schemaName: string): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/custom/columns?table=${table}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error while fetching custom columns:', error.message);
+      throw error;
+    }
+  }
+
   async createMappings(payload: any[]): Promise<any> {
     try {
       const response = await axios.post(`${this.baseUrl}`, payload);

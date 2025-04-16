@@ -6,9 +6,11 @@ import {
   ListTableMetadataCommand,
   GetTableMetadataCommand,
 } from "@aws-sdk/client-athena";
-import { Select, Button, Input, Table, message, Typography } from "antd";
+import { Select, Button, Input, Table, message, Typography, Modal, Upload } from "antd";
 import "./Mapping.css";
 import mappingServiceInstance from "../services/mapping.ts";
+import { UploadOutlined } from "@ant-design/icons";
+import schemaInstance from "../services/schema-define.ts";
 
 const { Title } = Typography;
 
@@ -17,9 +19,30 @@ const Mapping: React.FC = () => {
   const [databases, setDatabases] = useState<string[]>([]);
   const [tables, setTables] = useState<string[]>([]);
   const [schema, setSchema] = useState<{ Name: string; Type: string }[]>([]);
-  const [mappings, setMappings] = useState<{ source: string; target: string }[]>(
-    []
-  );
+  const [mappings, setMappings] = useState<
+    { source: string; target: string }[]
+  >([]);
+  const [databaseStograte, setDatabaseStograte] = useState<string[]>([]);
+  const [selectDatabaseStograte, setSelectDatabaseStograte] =
+    useState<string>();
+
+  useEffect(() => {
+    const fetchDatabaseStograte = async () => {
+      try {
+        const response = await schemaInstance.getsSchema();
+        console.log("Database stograte:", response);
+        setDatabaseStograte(response);
+      } catch (error) {
+        console.error("Error fetching database stograte:", error);
+      }
+    };
+
+    fetchDatabaseStograte();
+  }, []);
+
+  useEffect(() => {
+    console.log("selectDatabaseStograte", selectDatabaseStograte);
+  }, [selectDatabaseStograte]);
 
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
   const [selectedDatabase, setSelectedDatabase] = useState<string>("");
@@ -40,7 +63,8 @@ const Mapping: React.FC = () => {
       const command = new ListDataCatalogsCommand({});
       const response = await athenaClient.send(command);
       setCatalogs(
-        response.DataCatalogsSummary?.map((catalog) => catalog.CatalogName!) || []
+        response.DataCatalogsSummary?.map((catalog) => catalog.CatalogName!) ||
+          []
       );
     } catch (err: any) {
       console.error("Error fetching catalogs:", err);
@@ -109,15 +133,14 @@ const Mapping: React.FC = () => {
             dbTable: selectedTable,
             dbColumn: mapping.target,
             standardColumn: mapping.source,
-          })
+          });
         }
-      })
+      });
       console.log("data saved:", data);
       const res = await mappingServiceInstance.createMappings(data);
       if (res.success) {
         message.success("Mappings saved successfully.");
-      }
-      else {
+      } else {
         message.error(res.message);
       }
     } catch (error) {
@@ -147,12 +170,33 @@ const Mapping: React.FC = () => {
     setMappings(updatedMappings);
   };
 
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newDatabaseName, setNewDatabaseName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+
+  const handleUpload = async () => {
+    if (!newDatabaseName || !file) {
+      message.error("Please provide both database name and file");
+      return;
+    }
+
+    try {
+      await schemaInstance.create(file, newDatabaseName);
+      message.success("File uploaded successfully!");
+      setIsModalVisible(false);
+      setNewDatabaseName("");
+      setFile(null);
+    } catch (error) {
+      message.error("Upload failed");
+    }
+  };
+
   return (
     <div className="mapping-container">
       <div className="mapping-header">
-      <Title level={2} style={{ marginBottom: "20px" }}>
-        Data Mapping
-      </Title>
+        <Title level={2} style={{ marginBottom: "20px" }}>
+          Data Mapping
+        </Title>
         {error && <p style={{ color: "red" }}>{error}</p>}
         <div className="selectors">
           <Select
@@ -180,7 +224,7 @@ const Mapping: React.FC = () => {
           </Select>
           <Select
             placeholder="Select Table"
-            style={{ width: 200 }}
+            style={{ width: 200, marginRight: 10 }}
             onChange={(value) => setSelectedTable(value)}
             disabled={!selectedDatabase}
           >
@@ -190,8 +234,48 @@ const Mapping: React.FC = () => {
               </Select.Option>
             ))}
           </Select>
+          <Select
+            placeholder="Select Schema Mapping"
+            style={{ width: 200, marginRight: 10 }}
+            onChange={(value) => setSelectDatabaseStograte(value)}
+            disabled={!selectedTable}
+          >
+            {databaseStograte?.map((table) => (
+              <Select.Option key={table} value={table}>
+                {table}
+              </Select.Option>
+            ))}
+          </Select>
+
+          <Button type="primary" onClick={() => setIsModalVisible(true)}>
+            Upload Sample
+          </Button>
         </div>
       </div>
+
+      <Modal
+        title="Upload Schema Definition File"
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        onOk={handleUpload}
+        okText="Save"
+      >
+        <Input
+          placeholder="Enter Database Name"
+          value={newDatabaseName}
+          onChange={(e) => setNewDatabaseName(e.target.value)}
+          style={{ marginBottom: 12 }}
+        />
+        <Upload
+          beforeUpload={(file) => {
+            setFile(file);
+            return false; // prevent auto upload
+          }}
+          showUploadList={file ? [{ name: file.name }] : false}
+        >
+          <Button icon={<UploadOutlined />}>Select File</Button>
+        </Upload>
+      </Modal>
       <Table
         dataSource={mappings}
         columns={[

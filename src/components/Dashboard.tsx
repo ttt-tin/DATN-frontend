@@ -18,6 +18,7 @@ import {
 import { Pie, Line } from "@ant-design/plots";
 import axios from "axios";
 import dayjs from "dayjs";
+import runScriptInstance from "../services/run-script.ts";
 
 const { Title } = Typography;
 
@@ -156,6 +157,7 @@ const Dashboard: React.FC = () => {
 
   const handleManualTrigger = () => {
     setLoading(true);
+    runScriptInstance.run();
     setTimeout(() => {
       setLoading(false);
       message.success("Session triggered successfully!");
@@ -166,39 +168,37 @@ const Dashboard: React.FC = () => {
     try {
       const result = await historyServiceInstance.get();
       setSessionDatas(result);
-      console.log(result)
-    }
-    catch (error) {
+      console.log(result);
+    } catch (error) {
       message.error(error.message);
     }
-  }
+  };
 
   const runCleaningService = async () => {
     try {
-      message.info('Cleaning service is running...')
+      message.info("Cleaning service is running...");
       setSessionDatas((prev) => {
-        const maxId = prev.length > 0 ? Math.max(...prev.map(item => item.id)) : 0;
-      
+        const maxId =
+          prev.length > 0 ? Math.max(...prev.map((item) => item.id)) : 0;
+
         return [
           ...prev,
           {
-            id: maxId + 1,  // Increment the max ID for the new entry
-            status: 'Running',
-            time: new Date().toISOString(),  // Using ISO string format for time
-          }
+            id: maxId + 1, // Increment the max ID for the new entry
+            status: "Running",
+            time: new Date().toISOString(), // Using ISO string format for time
+          },
         ];
       });
-      
+
       const res = await runScriptInstance.run();
       if (res) {
-        message.success('Run success');
+        message.success("Run success");
       }
+    } catch (error) {
+      message.error(error.message);
     }
-    catch (error) {
-      message.error(error.message)
-    }
-  }
-
+  };
 
   return (
     <div>
@@ -290,6 +290,10 @@ const Dashboard: React.FC = () => {
             </Card>
           </Col>
         </Row>
+        <Divider orientation="left">Trigger a Session Manually</Divider>
+        <Button type="primary" onClick={handleManualTrigger} loading={loading}>
+          Trigger Session
+        </Button>
       </Card>
       <Row gutter={16} style={{ marginBottom: "16px" }}>
         <Col span={24}>
