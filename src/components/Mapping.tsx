@@ -6,7 +6,17 @@ import {
   ListTableMetadataCommand,
   GetTableMetadataCommand,
 } from "@aws-sdk/client-athena";
-import { Select, Button, Input, Table, message, Typography, Modal, Upload } from "antd";
+import {
+  Select,
+  Button,
+  Input,
+  Table,
+  message,
+  Typography,
+  Modal,
+  Upload,
+} from "antd";
+// Removed incorrect import for Option
 import "./Mapping.css";
 import mappingServiceInstance from "../services/mapping.ts";
 import { UploadOutlined } from "@ant-design/icons";
@@ -23,8 +33,10 @@ const Mapping: React.FC = () => {
     { source: string; target: string }[]
   >([]);
   const [databaseStograte, setDatabaseStograte] = useState<string[]>([]);
+  const [tableStograte, setTableStograte] = useState<string[]>([]);
   const [selectDatabaseStograte, setSelectDatabaseStograte] =
     useState<string>();
+  const [selectTableMapping, setSelectTableMapping] = useState<string>();
 
   useEffect(() => {
     const fetchDatabaseStograte = async () => {
@@ -41,8 +53,24 @@ const Mapping: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log("selectDatabaseStograte", selectDatabaseStograte);
+    const fetchColumnStograte = async () => {
+      try {
+        const response = await schemaInstance.getsTable(
+          selectDatabaseStograte
+        );
+        console.log("Column stograte:", response);
+        setTableStograte(response);
+      } catch (error) {
+        console.error("Error fetching Column stograte:", error);
+      }
+    };
+
+    fetchColumnStograte();
   }, [selectDatabaseStograte]);
+
+  useEffect(() => {
+    console.log("tableStograte", tableStograte);
+  }, [tableStograte]);
 
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
   const [selectedDatabase, setSelectedDatabase] = useState<string>("");
@@ -241,6 +269,19 @@ const Mapping: React.FC = () => {
             disabled={!selectedTable}
           >
             {databaseStograte?.map((table) => (
+              <Select.Option key={table} value={table}>
+                {table}
+              </Select.Option>
+            ))}
+          </Select>
+
+          <Select
+            placeholder="Select Table Mapping"
+            style={{ width: 200, marginRight: 10 }}
+            onChange={(value) => setSelectTableMapping(value)}
+            disabled={!selectedTable}
+          >
+            {tableStograte?.map((table) => (
               <Select.Option key={table} value={table}>
                 {table}
               </Select.Option>

@@ -27,6 +27,16 @@ class SchemaDefine {
     }
   }
 
+  async getsTable(schemaName: string): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/columns/${schemaName}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error while run script:", error.message);
+      throw error;
+    }
+  }
+
   async create(file: File, databaseName: string): Promise<any> {
     const formData = new FormData();
     formData.append("file", file);
