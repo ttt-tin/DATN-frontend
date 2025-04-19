@@ -48,41 +48,16 @@ class MappingService {
     }
   }
 
-  async getStandardColumns(table: string): Promise<any> {
+  async getMappingData(databaseName: string, tableName: string, standardTable: string): Promise<any> {
     try {
-      const response = await axios.get(
-        `${this.baseUrl}/standard/columns?table=${table}`
-      );
+      const response = await axios.get(`${this.baseUrl}/${databaseName}/${tableName}/${standardTable}`);
       return response.data;
     } catch (error) {
-      console.error("Error while fetching standard columns:", error.message);
+      console.error("Error while fetching custom tables:", error.message);
       throw error;
     }
   }
 
-  async getCustomColumns(table: string): Promise<any> {
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/custom/columns?table=${table}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error while fetching custom columns:", error.message);
-      throw error;
-    }
-  }
-
-  async getTableMapping(table: string, schemaName: string): Promise<any> {
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/custom/columns?table=${table}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error while fetching custom columns:", error.message);
-      throw error;
-    }
-  }
 
   async createMappings(payload: any[]): Promise<any> {
     try {

@@ -21,6 +21,7 @@ import "./Mapping.css";
 import mappingServiceInstance from "../services/mapping.ts";
 import { UploadOutlined } from "@ant-design/icons";
 import schemaInstance from "../services/schema-define.ts";
+import stringSimilarity from "string-similarity";
 
 const { Title } = Typography;
 
@@ -37,6 +38,8 @@ const Mapping: React.FC = () => {
   const [selectDatabaseStograte, setSelectDatabaseStograte] =
     useState<string>();
   const [selectTableMapping, setSelectTableMapping] = useState<string>();
+  const [mappingData, setMappingData] = useState<any[]>([]);
+  const [tableStructure, setTableStructure] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDatabaseStograte = async () => {
@@ -55,9 +58,7 @@ const Mapping: React.FC = () => {
   useEffect(() => {
     const fetchColumnStograte = async () => {
       try {
-        const response = await schemaInstance.getsTable(
-          selectDatabaseStograte
-        );
+        const response = await schemaInstance.getsTable(selectDatabaseStograte);
         console.log("Column stograte:", response);
         setTableStograte(response);
       } catch (error) {
@@ -69,8 +70,48 @@ const Mapping: React.FC = () => {
   }, [selectDatabaseStograte]);
 
   useEffect(() => {
-    console.log("tableStograte", tableStograte);
-  }, [tableStograte]);
+    const fetchColumnMapping = async () => {
+      try {
+        const response = await mappingServiceInstance.getMappingData(
+          selectDatabaseStograte,
+          selectTableMapping,
+          selectedTable
+        );
+
+        const test = mappings.map((key) => {
+          const matched = response.find(
+            (item: any) => item.standardColumn === key
+          );
+          return {
+            source: key,
+            target: matched ? matched.standardColumn : null,
+          };
+        });
+
+        console.log("Column mapping:", response);
+        setMappingData(test);
+      } catch (error) {
+        console.error("Error fetching Column mapping:", error);
+      }
+    };
+
+    const fetchTableStructure = async () => {
+      try {
+        const response = await schemaInstance.getsTableStructure(
+          selectDatabaseStograte,
+          selectTableMapping
+        );
+
+        console.log("responseresponse", response);
+        setTableStructure(response);
+      } catch (error) {
+        console.error("Error fetching Column mapping:", error);
+      }
+    };
+
+    fetchColumnMapping();
+    fetchTableStructure();
+  }, [selectTableMapping]);
 
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
   const [selectedDatabase, setSelectedDatabase] = useState<string>("");
@@ -318,7 +359,7 @@ const Mapping: React.FC = () => {
         </Upload>
       </Modal>
       <Table
-        dataSource={mappings}
+        dataSource={mappingData}
         columns={[
           {
             title: "Schema Column",
@@ -329,13 +370,35 @@ const Mapping: React.FC = () => {
             title: "Mapped Column",
             dataIndex: "target",
             key: "target",
-            render: (text, _, index) => (
-              <Input
-                placeholder="Enter mapping"
-                value={text}
-                onChange={(e) => handleMappingChange(index, e.target.value)}
-              />
-            ),
+            render: (text, record, index) => {
+              const standardColumns = tableStructure.map(
+                (item) => item.column_name
+              );
+
+              const bestMatch = stringSimilarity.findBestMatch(
+                record.source,
+                standardColumns
+              );
+              const autoSuggest =
+                bestMatch.bestMatch.rating >= 0.8
+                  ? bestMatch.bestMatch.target
+                  : undefined;
+
+              return (
+                <Select
+                  style={{ width: "100%" }}
+                  showSearch
+                  placeholder="Select or type mapping"
+                  value={text || autoSuggest || undefined}
+                  onChange={(value) => handleMappingChange(index, value)}
+                  options={standardColumns.map((col) => ({
+                    label: col === autoSuggest ? `${col} (Suggested)` : col,
+                    value: col,
+                  }))}
+                  allowClear
+                />
+              );
+            },
           },
         ]}
         rowKey="source"
