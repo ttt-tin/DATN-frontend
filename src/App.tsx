@@ -7,7 +7,8 @@ import {
   FolderOutlined,
   HistoryOutlined,
   ToolOutlined,
-  LinkOutlined, // 👈 New icon for Relation
+  LinkOutlined,
+  DatabaseOutlined, // 👈 New icon for Data Source
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Layout, Menu, theme } from "antd";
@@ -22,7 +23,8 @@ import Volume from "./components/Volume.tsx";
 import UniversalKey from "./components/UniversalKey.tsx";
 import Visualization from "./components/Visualization.tsx";
 import Explorer from "./components/Explorer.tsx";
-import Relation from "./components/Relation.tsx"; // 👈 Import the new Relation component
+import Relation from "./components/Relation.tsx";
+import DataSource from "./components/DataSource.tsx"; // 👈 Import the new DataSource component
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -60,7 +62,8 @@ const App: React.FC = () => {
     getItem("Volume", "/volume", <FolderOpenOutlined />, () => navigate("/volume")),
     getItem("Universal Key", "/universal-key", <FolderOpenOutlined />, () => navigate("/universal-key")),
     // getItem("Visualization", "/visualization", <BarChartOutlined />, () => navigate("/visualization")),
-    getItem("Relation", "/relation", <LinkOutlined />, () => navigate("/relation")), // 👈 New Relation menu item
+    getItem("Relation", "/relation", <LinkOutlined />, () => navigate("/relation")),
+    getItem("Data Source", "/data-source", <DatabaseOutlined />, () => navigate("/data-source")), // 👈 New Data Source menu item
   ];
 
   return (
@@ -104,7 +107,8 @@ const App: React.FC = () => {
             <Route path="/universal-key" element={<UniversalKey />} />
             <Route path="/visualization" element={<Visualization />} />
             <Route path="/explorer" element={<Explorer />} />
-            <Route path="/relation" element={<Relation />} /> {/* 👈 New Route */}
+            <Route path="/relation" element={<Relation />} />
+            <Route path="/data-source" element={<DataSource />} /> {/* 👈 New Route */}
           </Routes>
         </Content>
 
