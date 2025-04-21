@@ -16,7 +16,6 @@ import {
   Modal,
   Upload,
 } from "antd";
-// Removed incorrect import for Option
 import "./Mapping.css";
 import mappingServiceInstance from "../services/mapping.ts";
 import { UploadOutlined } from "@ant-design/icons";
@@ -30,88 +29,12 @@ const Mapping: React.FC = () => {
   const [databases, setDatabases] = useState<string[]>([]);
   const [tables, setTables] = useState<string[]>([]);
   const [schema, setSchema] = useState<{ Name: string; Type: string }[]>([]);
-  const [mappings, setMappings] = useState<
-    { source: string; target: string }[]
-  >([]);
+  const [mappings, setMappings] = useState<{ source: string; target: string }[]>([]);
   const [databaseStograte, setDatabaseStograte] = useState<string[]>([]);
   const [tableStograte, setTableStograte] = useState<string[]>([]);
-  const [selectDatabaseStograte, setSelectDatabaseStograte] =
-    useState<string>();
+  const [selectDatabaseStograte, setSelectDatabaseStograte] = useState<string>();
   const [selectTableMapping, setSelectTableMapping] = useState<string>();
-  const [mappingData, setMappingData] = useState<any[]>([]);
   const [tableStructure, setTableStructure] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchDatabaseStograte = async () => {
-      try {
-        const response = await schemaInstance.getsSchema();
-        console.log("Database stograte:", response);
-        setDatabaseStograte(response);
-      } catch (error) {
-        console.error("Error fetching database stograte:", error);
-      }
-    };
-
-    fetchDatabaseStograte();
-  }, []);
-
-  useEffect(() => {
-    const fetchColumnStograte = async () => {
-      try {
-        const response = await schemaInstance.getsTable(selectDatabaseStograte);
-        console.log("Column stograte:", response);
-        setTableStograte(response);
-      } catch (error) {
-        console.error("Error fetching Column stograte:", error);
-      }
-    };
-
-    fetchColumnStograte();
-  }, [selectDatabaseStograte]);
-
-  useEffect(() => {
-    const fetchColumnMapping = async () => {
-      try {
-        const response = await mappingServiceInstance.getMappingData(
-          selectDatabaseStograte,
-          selectTableMapping,
-          selectedTable
-        );
-
-        const test = mappings.map((key) => {
-          const matched = response.find(
-            (item: any) => item.standardColumn === key
-          );
-          return {
-            source: key,
-            target: matched ? matched.standardColumn : null,
-          };
-        });
-
-        console.log("Column mapping:", response);
-        setMappingData(test);
-      } catch (error) {
-        console.error("Error fetching Column mapping:", error);
-      }
-    };
-
-    const fetchTableStructure = async () => {
-      try {
-        const response = await schemaInstance.getsTableStructure(
-          selectDatabaseStograte,
-          selectTableMapping
-        );
-
-        console.log("responseresponse", response);
-        setTableStructure(response);
-      } catch (error) {
-        console.error("Error fetching Column mapping:", error);
-      }
-    };
-
-    fetchColumnMapping();
-    fetchTableStructure();
-  }, [selectTableMapping]);
 
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
   const [selectedDatabase, setSelectedDatabase] = useState<string>("");
@@ -126,37 +49,93 @@ const Mapping: React.FC = () => {
     },
   });
 
-  // Fetch catalogs
+  useEffect(() => {
+    const fetchDatabaseStograte = async () => {
+      try {
+        const response = await schemaInstance.getsSchema();
+        setDatabaseStograte(response);
+      } catch (error) {
+        console.error("Error fetching database stograte:", error);
+      }
+    };
+    fetchDatabaseStograte();
+  }, []);
+
+  useEffect(() => {
+    const fetchColumnStograte = async () => {
+      if (!selectDatabaseStograte) return;
+      try {
+        const response = await schemaInstance.getsTable(selectDatabaseStograte);
+        setTableStograte(response);
+      } catch (error) {
+        console.error("Error fetching Column stograte:", error);
+      }
+    };
+    fetchColumnStograte();
+  }, [selectDatabaseStograte]);
+
+  useEffect(() => {
+    const fetchColumnMapping = async () => {
+      if (!selectDatabaseStograte || !selectTableMapping || !selectedTable) return;
+      try {
+        const response = await mappingServiceInstance.getMappingData(
+          selectDatabaseStograte,
+          selectTableMapping,
+          selectedTable
+        );
+        const updatedMappings = schema.map((col) => {
+          const matched = response.find(
+            (item: any) => item.standardColumn === col.Name
+          );
+          return {
+            source: col.Name,
+            target: matched ? matched.dbColumn : "",
+          };
+        });
+        setMappings(updatedMappings);
+      } catch (error) {
+        console.error("Error fetching Column mapping:", error);
+      }
+    };
+
+    const fetchTableStructure = async () => {
+      if (!selectDatabaseStograte || !selectTableMapping) return;
+      try {
+        const response = await schemaInstance.getsTableStructure(
+          selectDatabaseStograte,
+          selectTableMapping
+        );
+        setTableStructure(response);
+      } catch (error) {
+        console.error("Error fetching table structure:", error);
+      }
+    };
+
+    fetchColumnMapping();
+    fetchTableStructure();
+  }, [selectTableMapping, schema]);
+
   const fetchCatalogs = async () => {
     try {
       const command = new ListDataCatalogsCommand({});
       const response = await athenaClient.send(command);
-      setCatalogs(
-        response.DataCatalogsSummary?.map((catalog) => catalog.CatalogName!) ||
-          []
-      );
+      setCatalogs(response.DataCatalogsSummary?.map((c) => c.CatalogName!) || []);
     } catch (err: any) {
-      console.error("Error fetching catalogs:", err);
       setError(err.message || "Failed to fetch catalogs.");
     }
   };
 
-  // Fetch databases
   const fetchDatabases = async () => {
     if (!selectedCatalog) return;
     try {
-      const command = new ListDatabasesCommand({
-        CatalogName: selectedCatalog,
-      });
+      const command = new ListDatabasesCommand({ CatalogName: selectedCatalog });
       const response = await athenaClient.send(command);
       setDatabases(response.DatabaseList?.map((db) => db.Name!) || []);
     } catch (err: any) {
-      console.error("Error fetching databases:", err);
       setError(err.message || "Failed to fetch databases.");
     }
   };
 
-  // Fetch tables
   const fetchTables = async () => {
     if (!selectedCatalog || !selectedDatabase) return;
     try {
@@ -165,14 +144,12 @@ const Mapping: React.FC = () => {
         DatabaseName: selectedDatabase,
       });
       const response = await athenaClient.send(command);
-      setTables(response.TableMetadataList?.map((table) => table.Name!) || []);
+      setTables(response.TableMetadataList?.map((t) => t.Name!) || []);
     } catch (err: any) {
-      console.error("Error fetching tables:", err);
       setError(err.message || "Failed to fetch tables.");
     }
   };
 
-  // Fetch schema
   const fetchSchema = async () => {
     if (!selectedCatalog || !selectedDatabase || !selectedTable) return;
     try {
@@ -186,34 +163,7 @@ const Mapping: React.FC = () => {
       setSchema(columns);
       setMappings(columns.map((col) => ({ source: col.Name, target: "" })));
     } catch (err: any) {
-      console.error("Error fetching schema:", err);
       setError(err.message || "Failed to fetch schema.");
-    }
-  };
-
-  // Save mappings
-  const handleSave = async () => {
-    try {
-      const data: any[] = [];
-      mappings.map((mapping: any) => {
-        if (mapping?.target) {
-          data.push({
-            dbName: selectedDatabase,
-            dbTable: selectedTable,
-            dbColumn: mapping.target,
-            standardColumn: mapping.source,
-          });
-        }
-      });
-      console.log("data saved:", data);
-      const res = await mappingServiceInstance.createMappings(data);
-      if (res.success) {
-        message.success("Mappings saved successfully.");
-      } else {
-        message.error(res.message);
-      }
-    } catch (error) {
-      message.error("Error saving mappings.");
     }
   };
 
@@ -234,9 +184,29 @@ const Mapping: React.FC = () => {
   }, [selectedTable]);
 
   const handleMappingChange = (index: number, value: string) => {
-    const updatedMappings = [...mappings];
-    updatedMappings[index].target = value;
-    setMappings(updatedMappings);
+    const updated = [...mappings];
+    updated[index].target = value;
+    setMappings(updated);
+  };
+
+  const handleSave = async () => {
+    try {
+      const payload = mappings
+        .filter((m) => m.target)
+        .map((m) => ({
+          dbName: selectedDatabase,
+          dbTable: selectedTable,
+          dbColumn: m.target,
+          standardColumn: m.source,
+        }));
+
+      const res = await mappingServiceInstance.createMappings(payload);
+      res.success
+        ? message.success("Mappings saved successfully.")
+        : message.error(res.message);
+    } catch {
+      message.error("Error saving mappings.");
+    }
   };
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -245,17 +215,15 @@ const Mapping: React.FC = () => {
 
   const handleUpload = async () => {
     if (!newDatabaseName || !file) {
-      message.error("Please provide both database name and file");
-      return;
+      return message.error("Please provide both database name and file");
     }
-
     try {
       await schemaInstance.create(file, newDatabaseName);
       message.success("File uploaded successfully!");
       setIsModalVisible(false);
       setNewDatabaseName("");
       setFile(null);
-    } catch (error) {
+    } catch {
       message.error("Upload failed");
     }
   };
@@ -263,26 +231,24 @@ const Mapping: React.FC = () => {
   return (
     <div className="mapping-container">
       <div className="mapping-header">
-        <Title level={2} style={{ marginBottom: "20px" }}>
-          Data Mapping
-        </Title>
+        <Title level={2}>Data Mapping</Title>
         {error && <p style={{ color: "red" }}>{error}</p>}
         <div className="selectors">
           <Select
             placeholder="Select Catalog"
             style={{ width: 200, marginRight: 10 }}
-            onChange={(value) => setSelectedCatalog(value)}
+            onChange={setSelectedCatalog}
           >
-            {catalogs.map((catalog) => (
-              <Select.Option key={catalog} value={catalog}>
-                {catalog}
+            {catalogs.map((c) => (
+              <Select.Option key={c} value={c}>
+                {c}
               </Select.Option>
             ))}
           </Select>
           <Select
             placeholder="Select Database"
             style={{ width: 200, marginRight: 10 }}
-            onChange={(value) => setSelectedDatabase(value)}
+            onChange={setSelectedDatabase}
             disabled={!selectedCatalog}
           >
             {databases.map((db) => (
@@ -294,41 +260,39 @@ const Mapping: React.FC = () => {
           <Select
             placeholder="Select Table"
             style={{ width: 200, marginRight: 10 }}
-            onChange={(value) => setSelectedTable(value)}
+            onChange={setSelectedTable}
             disabled={!selectedDatabase}
           >
-            {tables.map((table) => (
-              <Select.Option key={table} value={table}>
-                {table}
+            {tables.map((t) => (
+              <Select.Option key={t} value={t}>
+                {t}
               </Select.Option>
             ))}
           </Select>
           <Select
             placeholder="Select Schema Mapping"
             style={{ width: 200, marginRight: 10 }}
-            onChange={(value) => setSelectDatabaseStograte(value)}
+            onChange={setSelectDatabaseStograte}
             disabled={!selectedTable}
           >
-            {databaseStograte?.map((table) => (
-              <Select.Option key={table} value={table}>
-                {table}
+            {databaseStograte.map((d) => (
+              <Select.Option key={d} value={d}>
+                {d}
               </Select.Option>
             ))}
           </Select>
-
           <Select
             placeholder="Select Table Mapping"
             style={{ width: 200, marginRight: 10 }}
-            onChange={(value) => setSelectTableMapping(value)}
-            disabled={!selectedTable}
+            onChange={setSelectTableMapping}
+            disabled={!selectDatabaseStograte}
           >
-            {tableStograte?.map((table) => (
-              <Select.Option key={table} value={table}>
-                {table}
+            {tableStograte.map((t) => (
+              <Select.Option key={t} value={t}>
+                {t}
               </Select.Option>
             ))}
           </Select>
-
           <Button type="primary" onClick={() => setIsModalVisible(true)}>
             Upload Sample
           </Button>
@@ -349,17 +313,18 @@ const Mapping: React.FC = () => {
           style={{ marginBottom: 12 }}
         />
         <Upload
-          beforeUpload={(file) => {
-            setFile(file);
-            return false; // prevent auto upload
+          beforeUpload={(f) => {
+            setFile(f);
+            return false;
           }}
           showUploadList={file ? [{ name: file.name }] : false}
         >
           <Button icon={<UploadOutlined />}>Select File</Button>
         </Upload>
       </Modal>
+
       <Table
-        dataSource={mappingData}
+        dataSource={mappings}
         columns={[
           {
             title: "Schema Column",
@@ -371,16 +336,17 @@ const Mapping: React.FC = () => {
             dataIndex: "target",
             key: "target",
             render: (text, record, index) => {
-              const standardColumns = tableStructure.map(
-                (item) => item.column_name
-              );
+              const standardColumns = tableStructure
+                .map((item) => item.column_name)
+                .filter((col): col is string => typeof col === "string");
 
-              const bestMatch = stringSimilarity.findBestMatch(
-                record.source,
-                standardColumns
-              );
+              const bestMatch =
+                record.source && standardColumns.length
+                  ? stringSimilarity.findBestMatch(record.source, standardColumns)
+                  : null;
+
               const autoSuggest =
-                bestMatch.bestMatch.rating >= 0.8
+                bestMatch && bestMatch.bestMatch.rating >= 0.8
                   ? bestMatch.bestMatch.target
                   : undefined;
 
@@ -390,7 +356,7 @@ const Mapping: React.FC = () => {
                   showSearch
                   placeholder="Select or type mapping"
                   value={text || autoSuggest || undefined}
-                  onChange={(value) => handleMappingChange(index, value)}
+                  onChange={(val) => handleMappingChange(index, val)}
                   options={standardColumns.map((col) => ({
                     label: col === autoSuggest ? `${col} (Suggested)` : col,
                     value: col,
@@ -405,11 +371,8 @@ const Mapping: React.FC = () => {
         pagination={false}
         style={{ marginTop: 20 }}
       />
-      <Button
-        type="primary"
-        onClick={handleSave}
-        style={{ marginTop: 20, display: "block" }}
-      >
+
+      <Button type="primary" onClick={handleSave} style={{ marginTop: 20 }}>
         Save Mappings
       </Button>
     </div>

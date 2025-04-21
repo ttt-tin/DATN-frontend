@@ -8,7 +8,7 @@ import {
   HistoryOutlined,
   ToolOutlined,
   LinkOutlined,
-  DatabaseOutlined, // 👈 New icon for Data Source
+  DatabaseOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Layout, Menu, theme } from "antd";
@@ -24,7 +24,7 @@ import UniversalKey from "./components/UniversalKey.tsx";
 import Visualization from "./components/Visualization.tsx";
 import Explorer from "./components/Explorer.tsx";
 import Relation from "./components/Relation.tsx";
-import DataSource from "./components/DataSource.tsx"; // 👈 Import the new DataSource component
+import DataSource from "./components/DataSource.tsx";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -34,13 +34,15 @@ function getItem(
   label: React.ReactNode,
   key: string,
   icon?: React.ReactNode,
-  onClick?: () => void
+  onClick?: () => void,
+  children?: MenuItem[]
 ): MenuItem {
   return {
     key,
     icon,
     label,
     onClick,
+    children,
   } as MenuItem;
 }
 
@@ -55,15 +57,17 @@ const App: React.FC = () => {
   const items: MenuItem[] = [
     getItem("Dashboard", "/dashboard", <DashboardOutlined />, () => navigate("/dashboard")),
     getItem("Explorer", "/explorer", <FolderOutlined />, () => navigate("/explorer")),
-    getItem("Constraints", "/constraints", <DesktopOutlined />, () => navigate("/constraints")),
+    getItem("Configuration", "integration-cleaning", <ToolOutlined />, undefined, [
+      getItem("Mapping", "/mapping", <ToolOutlined />, () => navigate("/mapping")),
+      getItem("Relation", "/relation", <LinkOutlined />, () => navigate("/relation")),
+      getItem("Universal Key", "/universal-key", <FolderOpenOutlined />, () => navigate("/universal-key")),
+      getItem("Constraints", "/constraints", <DesktopOutlined />, () => navigate("/constraints")),
+    ]),
     getItem("History", "/history", <HistoryOutlined />, () => navigate("/history")),
     getItem("Query Editor", "/query-editor", <DesktopOutlined />, () => navigate("/query-editor")),
-    getItem("Mapping", "/mapping", <ToolOutlined />, () => navigate("/mapping")),
     getItem("Volume", "/volume", <FolderOpenOutlined />, () => navigate("/volume")),
-    getItem("Universal Key", "/universal-key", <FolderOpenOutlined />, () => navigate("/universal-key")),
     // getItem("Visualization", "/visualization", <BarChartOutlined />, () => navigate("/visualization")),
-    getItem("Relation", "/relation", <LinkOutlined />, () => navigate("/relation")),
-    getItem("Data Source", "/data-source", <DatabaseOutlined />, () => navigate("/data-source")), // 👈 New Data Source menu item
+    getItem("Data Source", "/data-source", <DatabaseOutlined />, () => navigate("/data-source")),
   ];
 
   return (
@@ -93,7 +97,7 @@ const App: React.FC = () => {
         >
           BK-Health
         </Header>
-        
+
         <Content style={{ margin: "16px", padding: "16px", background: colorBgContainer }}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" />} />
@@ -108,7 +112,7 @@ const App: React.FC = () => {
             <Route path="/visualization" element={<Visualization />} />
             <Route path="/explorer" element={<Explorer />} />
             <Route path="/relation" element={<Relation />} />
-            <Route path="/data-source" element={<DataSource />} /> {/* 👈 New Route */}
+            <Route path="/data-source" element={<DataSource />} />
           </Routes>
         </Content>
 
