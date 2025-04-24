@@ -1,18 +1,23 @@
 import React, { useState } from "react";
 import {
-  BarChartOutlined,
   DashboardOutlined,
-  DesktopOutlined,
-  FolderOpenOutlined,
   FolderOutlined,
-  HistoryOutlined,
+  FolderOpenOutlined,
   ToolOutlined,
   LinkOutlined,
+  DesktopOutlined,
+  HistoryOutlined,
   DatabaseOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Layout, Menu, theme } from "antd";
-import { Route, Routes, useNavigate, Navigate, useLocation } from "react-router-dom";
+import {
+  Route,
+  Routes,
+  useNavigate,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import Dashboard from "./components/Dashboard.tsx";
 import Constraints from "./components/Constraints.tsx";
 import History from "./components/History.tsx";
@@ -47,7 +52,7 @@ function getItem(
 }
 
 const App: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const {
     token: { colorBgContainer },
   } = theme.useToken();
@@ -55,77 +60,156 @@ const App: React.FC = () => {
   const location = useLocation();
 
   const items: MenuItem[] = [
-    getItem("Dashboard", "/dashboard", <DashboardOutlined />, () => navigate("/dashboard")),
-    getItem("Explorer", "/explorer", <FolderOutlined />, () => navigate("/explorer")),
-    getItem("Configuration", "integration-cleaning", <ToolOutlined />, undefined, [
-      getItem("Mapping", "/mapping", <ToolOutlined />, () => navigate("/mapping")),
-      getItem("Relation", "/relation", <LinkOutlined />, () => navigate("/relation")),
-      getItem("Universal Key", "/universal-key", <FolderOpenOutlined />, () => navigate("/universal-key")),
-      getItem("Constraints", "/constraints", <DesktopOutlined />, () => navigate("/constraints")),
-    ]),
-    getItem("History", "/history", <HistoryOutlined />, () => navigate("/history")),
-    getItem("Query Editor", "/query-editor", <DesktopOutlined />, () => navigate("/query-editor")),
-    getItem("Volume", "/volume", <FolderOpenOutlined />, () => navigate("/volume")),
-    // getItem("Visualization", "/visualization", <BarChartOutlined />, () => navigate("/visualization")),
-    getItem("Data Source", "/data-source", <DatabaseOutlined />, () => navigate("/data-source")),
+    getItem("Dashboard", "/dashboard", <DashboardOutlined />, () =>
+      navigate("/dashboard")
+    ),
+    getItem("Explorer", "/explorer", <FolderOutlined />, () =>
+      navigate("/explorer")
+    ),
+    getItem("Volume", "/volume", <FolderOpenOutlined />, () =>
+      navigate("/volume")
+    ),
+    getItem(
+      "Configuration",
+      "integration-cleaning",
+      <ToolOutlined />,
+      undefined,
+      [
+        getItem("Mapping", "/mapping", <ToolOutlined />, () =>
+          navigate("/mapping")
+        ),
+        getItem("Relation", "/relation", <LinkOutlined />, () =>
+          navigate("/relation")
+        ),
+        getItem("Universal Key", "/universal-key", <FolderOpenOutlined />, () =>
+          navigate("/universal-key")
+        ),
+        getItem("Constraints", "/constraints", <DesktopOutlined />, () =>
+          navigate("/constraints")
+        ),
+      ]
+    ),
+    getItem("History", "/history", <HistoryOutlined />, () =>
+      navigate("/history")
+    ),
+    getItem("Query Editor", "/query-editor", <DesktopOutlined />, () =>
+      navigate("/query-editor")
+    ),
+    getItem("Data Source", "/data-source", <DatabaseOutlined />, () =>
+      navigate("/data-source")
+    ),
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
-        <div className="demo-logo-vertical" />
-        <Menu
-          theme="dark"
-          selectedKeys={[location.pathname]}
-          mode="inline"
-          items={items}
-        />
-      </Sider>
-
-      <Layout>
-        <Header
+    <Layout style={{ minHeight: "100vh", background: "#e6e6e6" }}>
+      {/* Top Navigation Bar */}
+      <Header
+        style={{
+          background: "#001529",
+          padding: "0 24px",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          alignItems: "center",
+          height: 64,
+          width: "100%",
+          zIndex: 1100,
+          position: "fixed",
+          top: 0,
+          left: 0,
+        }}
+      >
+        <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            background: "#001529",
-            color: "#fff",
-            fontSize: "24px",
-            fontWeight: "bold",
-            height: "64px",
+            fontSize: 32,
+            fontWeight: 800,
+            color: "#ffffff",
+            letterSpacing: 1.5,
+            textTransform: "uppercase",
+            cursor: "pointer",
+            textShadow: "1px 1px 3px rgba(0, 0, 0, 0.3)",
+            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
           }}
+          onClick={() => navigate("/dashboard")}
         >
           BK-Health
-        </Header>
+        </div>
+      </Header>
 
-        <Content style={{ margin: "16px", padding: "16px", background: colorBgContainer }}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/constraints" element={<Constraints />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/query-editor" element={<QueryEditor />} />
-            <Route path="/session/:sessionId" element={<SessionDetail />} />
-            <Route path="/mapping" element={<Mapping />} />
-            <Route path="/volume" element={<Volume />} />
-            <Route path="/universal-key" element={<UniversalKey />} />
-            <Route path="/visualization" element={<Visualization />} />
-            <Route path="/explorer" element={<Explorer />} />
-            <Route path="/relation" element={<Relation />} />
-            <Route path="/data-source" element={<DataSource />} />
-          </Routes>
-        </Content>
-
-        <Footer
+      {/* Layout under Header */}
+      <Layout>
+        {/* Sidebar under Header */}
+        <Sider
+          collapsed={collapsed}
+          onMouseEnter={() => setCollapsed(false)}
+          onMouseLeave={() => setCollapsed(true)}
+          width={220}
+          collapsible
           style={{
-            textAlign: "center",
             background: "#001529",
-            color: "#fff",
-            padding: "10px 0",
+            transition: "width 0.6s ease-in-out",
+            overflow: "hidden",
+            position: "fixed",
+            left: 0,
+            top: 64,
+            height: "calc(100% - 64px)",
+            zIndex: 1000,
           }}
         >
-          © {new Date().getFullYear()} BK-Health. All Rights Reserved.
-        </Footer>
+          <Menu
+            theme="dark"
+            selectedKeys={[location.pathname]}
+            mode="inline"
+            items={items}
+            style={{ borderRight: 0 }}
+          />
+        </Sider>
+
+        {/* Main Content Area */}
+        <Layout
+          style={{
+            marginLeft: collapsed ? 80 : 220,
+            marginTop: 64,
+            transition: "margin-left 0.6s ease-in-out",
+            background: "#e6e6e6",
+          }}
+        >
+          <Content
+            style={{
+              padding: 24,
+              background: "#e6e6e6",
+              color: "#000",
+              minHeight: "calc(100vh - 144px)",
+            }}
+          >
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/constraints" element={<Constraints />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/query-editor" element={<QueryEditor />} />
+              <Route path="/session/:sessionId" element={<SessionDetail />} />
+              <Route path="/mapping" element={<Mapping />} />
+              <Route path="/volume" element={<Volume />} />
+              <Route path="/universal-key" element={<UniversalKey />} />
+              <Route path="/visualization" element={<Visualization />} />
+              <Route path="/explorer" element={<Explorer />} />
+              <Route path="/relation" element={<Relation />} />
+              <Route path="/data-source" element={<DataSource />} />
+            </Routes>
+          </Content>
+
+          <Footer
+            style={{
+              textAlign: "center",
+              background: "#1f1f1f",
+              padding: "12px 0",
+              fontSize: 14,
+              color: "#aaa",
+            }}
+          >
+            © {new Date().getFullYear()} BK-Health. All Rights Reserved.
+          </Footer>
+        </Layout>
       </Layout>
     </Layout>
   );

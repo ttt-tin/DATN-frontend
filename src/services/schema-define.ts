@@ -74,6 +74,16 @@ class SchemaDefine {
       throw error;
     }
   }
+
+  async createAthenaTablesFromSchema(schemaName: string): Promise<any> {
+    try {
+      const response = await axios.post(`${this.baseUrl}/schemas/${schemaName}/create-athena`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error creating Athena tables:", error.message);
+      throw error;
+    }
+  }
 }
 
 const schemaInstance = new SchemaDefine();

@@ -40,6 +40,9 @@ const Mapping: React.FC = () => {
   const [selectedDatabase, setSelectedDatabase] = useState<string>("");
   const [selectedTable, setSelectedTable] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [isSchemaModalVisible, setIsSchemaModalVisible] = useState(false);
+  const [availableSchemas, setAvailableSchemas] = useState<string[]>([]);
+  const [selectedSchemaName, setSelectedSchemaName] = useState<string>("");
 
   const athenaClient = new AthenaClient({
     region: process.env.REACT_APP_AWS_REGION,
@@ -136,6 +139,30 @@ const Mapping: React.FC = () => {
     }
   };
 
+  const handleInitializeSchema = async () => {
+    try {
+      const response = await schemaInstance.getsSchema(); // GET /schemas
+      setAvailableSchemas(response);
+      setIsSchemaModalVisible(true);
+    } catch (err) {
+      message.error("Failed to fetch schema names.");
+    }
+  };
+
+  const handleSchemaConfirm = async () => {
+    if (!selectedSchemaName) {
+      return message.warning("Please select a schema.");
+    }
+    try {
+      await schemaInstance.createAthenaTablesFromSchema(selectedSchemaName);
+      message.success("Tables created successfully in Athena.");
+      setIsSchemaModalVisible(false);
+      fetchTables(); // Refetch tables
+    } catch (err) {
+      message.error("Failed to create tables.");
+    }
+  };
+
   const fetchTables = async () => {
     if (!selectedCatalog || !selectedDatabase) return;
     try {
@@ -144,7 +171,13 @@ const Mapping: React.FC = () => {
         DatabaseName: selectedDatabase,
       });
       const response = await athenaClient.send(command);
-      setTables(response.TableMetadataList?.map((t) => t.Name!) || []);
+      const tableNames = response.TableMetadataList?.map((t) => t.Name!) || [];
+
+      if (tableNames.length === 0) {
+        handleInitializeSchema();
+      } else {
+        setTables(tableNames);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to fetch tables.");
     }
@@ -321,6 +354,51 @@ const Mapping: React.FC = () => {
         >
           <Button icon={<UploadOutlined />}>Select File</Button>
         </Upload>
+      </Modal>
+      <Modal
+        title="Upload Schema Definition File"
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        onOk={handleUpload}
+        okText="Save"
+      >
+        <Input
+          placeholder="Enter Database Name"
+          value={newDatabaseName}
+          onChange={(e) => setNewDatabaseName(e.target.value)}
+          style={{ marginBottom: 12 }}
+        />
+        <Upload
+          beforeUpload={(f) => {
+            setFile(f);
+            return false;
+          }}
+          showUploadList={file ? [{ name: file.name }] : false}
+        >
+          <Button icon={<UploadOutlined />}>Select File</Button>
+        </Upload>
+      </Modal>
+
+      {/* New Schema Initialization Modal */}
+      <Modal
+        title="No Tables Found. Choose a table to initialize schema"
+        open={isSchemaModalVisible}
+        onCancel={() => setIsSchemaModalVisible(false)}
+        onOk={handleSchemaConfirm}
+        okText="Initialize"
+      >
+        <p>Select a schema to create tables in Athena:</p>
+        <Select
+          style={{ width: "100%" }}
+          placeholder="Select schema"
+          onChange={(val) => setSelectedSchemaName(val)}
+        >
+          {availableSchemas.map((schema) => (
+            <Select.Option key={schema} value={schema}>
+              {schema}
+            </Select.Option>
+          ))}
+        </Select>
       </Modal>
 
       <Table
