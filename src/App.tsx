@@ -30,6 +30,8 @@ import Visualization from "./components/Visualization.tsx";
 import Explorer from "./components/Explorer.tsx";
 import Relation from "./components/Relation.tsx";
 import DataSource from "./components/DataSource.tsx";
+import Initialization from "./components/Initialization.tsx";
+import SidebarMenu from "./components/Sidebar.tsx";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -53,52 +55,12 @@ function getItem(
 
 const App: React.FC = () => {
   const [collapsed, setCollapsed] = useState(true);
+    useState(false);
   const {
     token: { colorBgContainer },
   } = theme.useToken();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const items: MenuItem[] = [
-    getItem("Dashboard", "/dashboard", <DashboardOutlined />, () =>
-      navigate("/dashboard")
-    ),
-    getItem("Explorer", "/explorer", <FolderOutlined />, () =>
-      navigate("/explorer")
-    ),
-    getItem("Volume", "/volume", <FolderOpenOutlined />, () =>
-      navigate("/volume")
-    ),
-    getItem(
-      "Configuration",
-      "integration-cleaning",
-      <ToolOutlined />,
-      undefined,
-      [
-        getItem("Mapping", "/mapping", <ToolOutlined />, () =>
-          navigate("/mapping")
-        ),
-        getItem("Relation", "/relation", <LinkOutlined />, () =>
-          navigate("/relation")
-        ),
-        getItem("Universal Key", "/universal-key", <FolderOpenOutlined />, () =>
-          navigate("/universal-key")
-        ),
-        getItem("Constraints", "/constraints", <DesktopOutlined />, () =>
-          navigate("/constraints")
-        ),
-      ]
-    ),
-    getItem("History", "/history", <HistoryOutlined />, () =>
-      navigate("/history")
-    ),
-    getItem("Query Editor", "/query-editor", <DesktopOutlined />, () =>
-      navigate("/query-editor")
-    ),
-    getItem("Data Source", "/data-source", <DatabaseOutlined />, () =>
-      navigate("/data-source")
-    ),
-  ];
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#e6e6e6" }}>
@@ -138,31 +100,7 @@ const App: React.FC = () => {
       {/* Layout under Header */}
       <Layout>
         {/* Sidebar under Header */}
-        <Sider
-          collapsed={collapsed}
-          onMouseEnter={() => setCollapsed(false)}
-          onMouseLeave={() => setCollapsed(true)}
-          width={220}
-          collapsible
-          style={{
-            background: "#001529",
-            transition: "width 0.6s ease-in-out",
-            overflow: "hidden",
-            position: "fixed",
-            left: 0,
-            top: 64,
-            height: "calc(100% - 64px)",
-            zIndex: 1000,
-          }}
-        >
-          <Menu
-            theme="dark"
-            selectedKeys={[location.pathname]}
-            mode="inline"
-            items={items}
-            style={{ borderRight: 0 }}
-          />
-        </Sider>
+        <SidebarMenu />
 
         {/* Main Content Area */}
         <Layout
@@ -195,6 +133,7 @@ const App: React.FC = () => {
               <Route path="/explorer" element={<Explorer />} />
               <Route path="/relation" element={<Relation />} />
               <Route path="/data-source" element={<DataSource />} />
+              <Route path="/initialization" element={<Initialization />} />
             </Routes>
           </Content>
 
@@ -216,3 +155,6 @@ const App: React.FC = () => {
 };
 
 export default App;
+function useEffect(arg0: () => void, arg1: never[]) {
+  throw new Error("Function not implemented.");
+}
