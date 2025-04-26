@@ -1,7 +1,21 @@
-// Relation.tsx
 import React, { useState, useEffect } from "react";
-import { Button, Form, Input, Space, Typography, message, Card } from "antd";
-import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Form,
+  Input,
+  Space,
+  Typography,
+  message,
+  Card,
+  Row,
+  Col,
+  Divider,
+} from "antd";
+import {
+  MinusCircleOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import ReactFlow, {
   Controls,
   Background,
@@ -197,7 +211,7 @@ const Relation: React.FC = () => {
       <div>
         <Title level={2}>Table Relationships</Title>
         <div style={{ display: "flex", gap: "24px" }}>
-          {/* Left: Relation Form (larger) */}
+          {/* Left: Relation Form */}
           <div style={{ flex: 0.8 }}>
             <Card
               title="Manage Relationships"
@@ -205,128 +219,138 @@ const Relation: React.FC = () => {
               style={{ minHeight: "90vh" }}
             >
               <Form
+                layout="vertical"
                 form={form}
                 name="relations_form"
                 onFinish={onFinish}
-                autoComplete="off"
-                layout="vertical"
               >
-                <Form.List name="relations">
-                  {(fields, { add, remove }) => (
-                    <>
-                      {fields.map(({ key, name, ...restField }) => (
-                        <div
-                          key={key}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            marginBottom: 8,
-                            background: "#fafafa",
-                            padding: "12px",
-                            borderRadius: "6px",
-                            border: "1px solid #f0f0f0",
-                          }}
-                        >
-                          <Form.Item
-                            {...restField}
-                            name={[name, "id"]}
-                            style={{ display: "none" }}
-                          >
-                            <Input type="hidden" />
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, "tableReference"]}
-                            rules={[
-                              { required: true, message: "Table is required" },
-                            ]}
-                            style={{ marginBottom: 0, flex: 1 }}
-                          >
-                            <Input size="small" placeholder="Table" />
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, "tableWasReference"]}
-                            rules={[
-                              {
-                                required: true,
-                                message: "Reference table is required",
-                              },
-                            ]}
-                            style={{ marginBottom: 0, flex: 1 }}
-                          >
-                            <Input size="small" placeholder="Reference Table" />
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, "priKey"]}
-                            rules={[
-                              {
-                                required: true,
-                                message: "Primary key is required",
-                              },
-                            ]}
-                            style={{ marginBottom: 0, flex: 1 }}
-                          >
-                            <Input size="small" placeholder="Primary Key" />
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, "foKey"]}
-                            rules={[
-                              {
-                                required: true,
-                                message: "Foreign key is required",
-                              },
-                            ]}
-                            style={{ marginBottom: 0, flex: 1 }}
-                          >
-                            <Input size="small" placeholder="Foreign Key" />
-                          </Form.Item>
-                          <Button
-                            danger
-                            size="small"
-                            icon={<MinusCircleOutlined />}
-                            onClick={() => handleDelete(name, remove)}
-                          />
-                        </div>
-                      ))}
-                      <Form.Item>
-                        <Button
-                          type="dashed"
-                          onClick={() => add()}
-                          block
-                          icon={<PlusOutlined />}
-                        >
-                          Add Relation
-                        </Button>
-                      </Form.Item>
-                    </>
-                  )}
-                </Form.List>
-                <Form.Item>
-                  <Space>
+                {/* Buttons Row */}
+                <Row
+                  justify="space-between"
+                  align="middle"
+                  style={{ marginBottom: 16 }}
+                >
+                  {/* Left side: Submit button */}
+                  <Col>
                     <Button type="primary" htmlType="submit" loading={loading}>
                       Submit
                     </Button>
-                    <Button onClick={fetchRelations} loading={loading}>
-                      Refresh
-                    </Button>
-                    <Button
-                      type="dashed"
-                      onClick={handleAutoDetect}
-                      loading={loading}
-                    >
-                      Auto Generate
-                    </Button>
-                  </Space>
-                </Form.Item>
+                  </Col>
+                  {/* Right side: Other buttons */}
+                  <Col>
+                    <Space>
+                      <Button
+                        icon={<ReloadOutlined />}
+                        onClick={fetchRelations}
+                        loading={loading}
+                      />
+                      <Button
+                        type="dashed"
+                        onClick={handleAutoDetect}
+                        loading={loading}
+                      >
+                        Auto Generate
+                      </Button>
+                      <Button
+                        type="dashed"
+                        icon={<PlusOutlined />}
+                        onClick={() => {
+                          const values = form.getFieldValue("relations") || [];
+                          form.setFieldsValue({ relations: [...values, {}] });
+                        }}
+                      >
+                        Add Relation
+                      </Button>
+                    </Space>
+                  </Col>
+                </Row>
+
+                {/* Form List */}
+                <Form.List name="relations">
+                  {(fields, { remove }) => (
+                    <>
+                      {fields.map(({ key, name, ...restField }) => (
+                        <Card
+                          key={key}
+                          size="small"
+                          style={{
+                            marginBottom: 12,
+                            border: "1px solid #d9d9d9",
+                            borderRadius: 8,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                          }}
+                          bodyStyle={{ padding: 12 }}
+                        >
+                          <Row gutter={12} align="middle">
+                            <Form.Item
+                              {...restField}
+                              name={[name, "id"]}
+                              style={{ display: "none" }}
+                            >
+                              <Input type="hidden" />
+                            </Form.Item>
+                            {[
+                              { label: "Table", name: "tableReference" },
+                              {
+                                label: "Reference Table",
+                                name: "tableWasReference",
+                              },
+                              { label: "Primary Key", name: "priKey" },
+                              { label: "Foreign Key", name: "foKey" },
+                            ].map(({ label, name: fieldName }, i) => (
+                              <Col span={6} key={i}>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  {label}
+                                </div>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, fieldName]}
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: `${label} is required`,
+                                    },
+                                  ]}
+                                  style={{ marginBottom: 0 }}
+                                >
+                                  <Input
+                                    size="small"
+                                    placeholder={label}
+                                    style={{
+                                      background: "#fafafa",
+                                      borderColor: "#d9d9d9",
+                                      borderRadius: 4,
+                                      paddingLeft: 8,
+                                    }}
+                                  />
+                                </Form.Item>
+                              </Col>
+                            ))}
+                            <Col span={1}>
+                              <Button
+                                danger
+                                size="small"
+                                icon={<MinusCircleOutlined />}
+                                onClick={() => handleDelete(name, remove)}
+                              />
+                            </Col>
+                          </Row>
+                        </Card>
+                      ))}
+                    </>
+                  )}
+                </Form.List>
               </Form>
             </Card>
           </div>
 
-          {/* Right: Graph View (smaller) */}
+          {/* Right: Graph View */}
           <div
             style={{
               flex: 0.8,
