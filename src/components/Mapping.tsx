@@ -65,10 +65,40 @@ const Mapping: React.FC = () => {
   useEffect(() => {
     const fetchMappings = async () => {
       try {
-        const response =
-          await axios.get(process.env.REACT_APP_API_URL + "/mappings/all");
+        const response = await axios.get(
+          process.env.REACT_APP_API_URL + "/mappings/all"
+        );
+
         if (response.data.success) {
-          setMappingBlocks(response.data.data); // Set the fetched data into state
+          const rawMappings = response.data.data;
+
+          // Group mappings by source table
+          const blocksBySourceTable = {};
+
+          rawMappings.forEach((mapping) => {
+            const key = mapping.standard_table; // group by standard_table (corrected)
+
+            if (!blocksBySourceTable[key]) {
+              blocksBySourceTable[key] = {
+                id: Date.now().toString() + Math.random(), // or use uuid
+                selectedSourceTable: mapping.standard_table, // ✅ source = standard_table
+                selectedTargetTable: mapping.db_table, // ✅ target = db_table
+                selectedDatabaseStorage: mapping.db_name, // ✅ storage = standard_db
+                sourceSchema: [], // (optional) you might load it later
+                targetSchema: [],
+                mappings: [],
+              };
+            }
+
+            blocksBySourceTable[key].mappings.push({
+              source: mapping.standard_column, // ✅ source = standard_column
+              target: mapping.db_column, // ✅ target = db_column
+            });
+          });
+
+          const mappingBlocks = Object.values(blocksBySourceTable);
+
+          setMappingBlocks(mappingBlocks);
         } else {
           message.error(response.data.message || "Failed to fetch mappings.");
         }
@@ -79,7 +109,7 @@ const Mapping: React.FC = () => {
     };
 
     fetchMappings();
-  }, []); // This effect runs once when the component mounts
+  }, []);
 
   const handleSubmitAll = async () => {
     try {
@@ -360,147 +390,175 @@ const Mapping: React.FC = () => {
 
   return (
     <div className="mapping-container">
-      <Title level={2}>Table Mappings</Title>
-      <div className="actions">
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={addMappingBlock}
+      <div className="mapping-header">
+        <Title level={2}>Data Mapping</Title>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <Button
+            type="dashed"
+            icon={<PlusOutlined />}
+            onClick={addMappingBlock}
+          >
+            Add Mapping
+          </Button>
+
+          <Button
+            type="primary"
+            icon={<ThunderboltOutlined />}
+            onClick={autoGenerateMappings}
+          >
+            Auto Generate
+          </Button>
+          <Button
+            type="primary"
+            onClick={handleSubmitAll}
+            style={{ marginLeft: 10 }}
+          >
+            Submit All Mappings
+          </Button>
+        </div>
+
+        {/* Schema Init Modal */}
+        <Modal
+          title="No Tables Found. Choose a table to initialize schema"
+          open={isSchemaModalVisible}
+          onCancel={() => setIsSchemaModalVisible(false)}
+          onOk={handleSchemaConfirm}
+          okText="Initialize"
         >
-          Add Mapping Block
-        </Button>
-        <Button
-          icon={<ThunderboltOutlined />}
-          onClick={autoGenerateMappings}
-          style={{ marginLeft: 10 }}
-        >
-          Auto-Generate Mappings
-        </Button>
-        <Button
-          type="primary"
-          onClick={handleSubmitAll}
-          style={{ marginLeft: 10 }}
-        >
-          Submit All Mappings
-        </Button>
-      </div>
-      <div className="mapping-blocks">
-        {mappingBlocks.map((block) => (
-          <div key={block.id} className="mapping-block">
-            <Collapse
-              defaultActiveKey={["1"]}
-              onChange={(key) => {
-                // handle collapse change
-              }}
+          <p>Select a schema to create tables in Athena:</p>
+          <Select
+            style={{ width: "100%" }}
+            placeholder="Select schema"
+            onChange={(val) => setSelectedSchemaName(val)}
+          >
+            {availableSchemas.map((schema) => (
+              <Select.Option key={schema} value={schema}>
+                {schema}
+              </Select.Option>
+            ))}
+          </Select>
+        </Modal>
+
+        {/* Mapping Blocks */}
+        <Collapse accordion style={{ marginTop: 20 }}>
+          {mappingBlocks.map((block) => (
+            <Panel
+              header={`Mapping ${block.selectedSourceTable || "Source"} ➔ ${
+                block.selectedTargetTable || "Target"
+              } (${block.selectedDatabaseStorage || "No DB"})`}
+              key={block.id}
+              extra={
+                <Popconfirm
+                  title="Are you sure to delete this mapping block?"
+                  onConfirm={() => deleteBlock(block.id)}
+                >
+                  <DeleteOutlined onClick={(e) => e.stopPropagation()} />
+                </Popconfirm>
+              }
             >
-              <Panel header="Mapping Block" key="1">
-                {/* Source Table Selection */}
-                <div className="block-row">
-                  <span className="block-label">Source Table</span>
-                  <Select
-                    style={{ width: 200 }}
-                    onChange={(value) => {
-                      updateBlock(block.id, { selectedSourceTable: value });
-                      fetchSourceSchema(block.id, value);
-                    }}
-                    value={block.selectedSourceTable || undefined}
-                  >
-                    {tables.map((table) => (
-                      <Select.Option key={table} value={table}>
-                        {table}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </div>
+              <div style={{ marginBottom: 15, display: "flex", gap: 10 }}>
+                <Select
+                  placeholder="Select Source Table"
+                  style={{ width: 200 }}
+                  value={block.selectedSourceTable}
+                  onChange={(val) => {
+                    updateBlock(block.id, { selectedSourceTable: val });
+                    fetchSourceSchema(block.id, val);
+                  }}
+                  options={tables.map((table) => ({
+                    label: table,
+                    value: table,
+                  }))}
+                  allowClear
+                />
 
-                {/* Target Table Selection */}
-                <div className="block-row">
-                  <span className="block-label">Target Table</span>
-                  <Select
-                    style={{ width: 200 }}
-                    onChange={(value) => {
-                      updateBlock(block.id, { selectedTargetTable: value });
-                      fetchTargetSchema(
-                        block.id,
-                        block.selectedDatabaseStorage,
-                        value
+                <Select
+                  placeholder="Select Database Storage"
+                  style={{ width: 200 }}
+                  value={block.selectedDatabaseStorage}
+                  onChange={(val) => {
+                    updateBlock(block.id, { selectedDatabaseStorage: val });
+                    fetchTargetTables(block.id, val);
+                  }}
+                  options={databaseStorage.map((db) => ({
+                    label: db,
+                    value: db,
+                  }))}
+                  allowClear
+                />
+
+                <Select
+                  placeholder="Select Target Table"
+                  style={{ width: 200 }}
+                  value={block.selectedTargetTable}
+                  onChange={(val) => {
+                    updateBlock(block.id, { selectedTargetTable: val });
+                    fetchTargetSchema(
+                      block.id,
+                      block.selectedDatabaseStorage,
+                      val
+                    );
+                  }}
+                  options={tableStorage.map((table) => ({
+                    label: table,
+                    value: table,
+                  }))}
+                  allowClear
+                />
+              </div>
+
+              <Table
+                dataSource={block.mappings}
+                columns={[
+                  {
+                    title: "Source Column",
+                    dataIndex: "source",
+                    key: "source",
+                  },
+                  {
+                    title: "Target Column",
+                    dataIndex: "target",
+                    key: "target",
+                    render: (text, record, index) => {
+                      const standardColumns = block.targetSchema
+                        .map((item: any) => item.column_name)
+                        .filter((col: any) => typeof col === "string");
+
+                      return (
+                        <Select
+                          style={{ width: "100%" }}
+                          showSearch
+                          placeholder="Select or type mapping"
+                          value={text || undefined}
+                          onChange={(val) =>
+                            handleMappingChange(block.id, index, val)
+                          }
+                          options={standardColumns.map((col: string) => ({
+                            label: col,
+                            value: col,
+                          }))}
+                          allowClear
+                        />
                       );
-                    }}
-                    value={block.selectedTargetTable || undefined}
-                  >
-                    {tableStorage.map((table) => (
-                      <Select.Option key={table} value={table}>
-                        {table}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </div>
+                    },
+                  },
+                ]}
+                rowKey="source"
+                pagination={false}
+              />
 
-                {/* Mapping Schema */}
-                <div className="mappings">
-                  {block.mappings.map((m, idx) => (
-                    <div key={idx} className="mapping-row">
-                      <span className="mapping-source">{m.source}</span>
-                      <Select
-                        value={m.target}
-                        onChange={(value) =>
-                          handleMappingChange(block.id, idx, value)
-                        }
-                      >
-                        {block.targetSchema.map((ts) => (
-                          <Select.Option
-                            key={ts.column_name}
-                            value={ts.column_name}
-                          >
-                            {ts.column_name}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="block-actions">
-                  <Button
-                    onClick={() => handleSaveBlock(block.id)}
-                    style={{ marginRight: 10 }}
-                  >
-                    Save Mappings
-                  </Button>
-                  <Popconfirm
-                    title="Are you sure to delete this block?"
-                    onConfirm={() => deleteBlock(block.id)}
-                  >
-                    <Button type="danger" icon={<DeleteOutlined />}>
-                      Delete Block
-                    </Button>
-                  </Popconfirm>
-                </div>
-              </Panel>
-            </Collapse>
-          </div>
-        ))}
-      </div>
-
-      {/* Schema Modal */}
-      <Modal
-        title="Select Schema to Initialize"
-        visible={isSchemaModalVisible}
-        onCancel={() => setIsSchemaModalVisible(false)}
-        onOk={handleSchemaConfirm}
-      >
-        <Select
-          style={{ width: "100%" }}
-          onChange={setSelectedSchemaName}
-          value={selectedSchemaName || undefined}
-        >
-          {availableSchemas.map((schema) => (
-            <Select.Option key={schema} value={schema}>
-              {schema}
-            </Select.Option>
+              <Button
+                type="primary"
+                style={{ marginTop: 10 }}
+                onClick={() => handleSaveBlock(block.id)}
+              >
+                Save This Mapping
+              </Button>
+            </Panel>
           ))}
-        </Select>
-      </Modal>
+        </Collapse>
+      </div>
     </div>
   );
 };
