@@ -29,7 +29,7 @@ class SchemaDefine {
 
   async getsTable(schemaName: string): Promise<any> {
     try {
-      const response = await axios.get(`${this.baseUrl}/columns/${schemaName}`);
+      const response = await axios.get(`${this.baseUrl}/${schemaName}/tables`);
       return response.data;
     } catch (error) {
       console.error("Error while run script:", error.message);
