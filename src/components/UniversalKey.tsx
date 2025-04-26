@@ -76,7 +76,7 @@ const UniversalKey = () => {
 
         // Fetch pre-selected data from the API
         const dataResponse = await fetch(
-          `${process.env.REACT_APP_API_URL}/athena/data?catalog=AwsDataCatalog&database=hospital_data&table=tables`
+          `${process.env.REACT_APP_API_URL}/athena/data?catalog=AwsDataCatalog&database=bk_health_lakehouse_db&table=tables`
         );
         if (!dataResponse.ok) {
           throw new Error("Failed to fetch data");
@@ -113,6 +113,7 @@ const UniversalKey = () => {
     const requestData = {
       table_name: selectedTable,
       column_name: supportKeys,
+      database: "bk_health_lakehouse_db"
     };
 
     try {
