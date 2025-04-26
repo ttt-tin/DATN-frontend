@@ -115,18 +115,21 @@ const Mapping: React.FC = () => {
     try {
       const allPayloads = mappingBlocks.flatMap((block) =>
         block.mappings
-          .filter((m: any) => m.target)
           .map((m: any) => ({
-            dbName: selectedDatabase,
+            dbName: block.selectedDatabaseStorage,
             dbTable: block.selectedSourceTable,
             dbColumn: m.target,
             standardColumn: m.source,
+            standardTable: block.selectedSourceTable,
+            standardDb: "hospital_data"
           }))
       );
 
       if (allPayloads.length === 0) {
         return message.warning("No mappings to submit.");
       }
+
+      console.log(allPayloads);
 
       const res = await mappingServiceInstance.createMappings(allPayloads);
 
@@ -328,7 +331,12 @@ const Mapping: React.FC = () => {
           TableName: sourceTable,
         });
         const sourceResponse = await athenaClient.send(sourceCommand);
-        const sourceColumns = sourceResponse.TableMetadata?.Columns || [];
+        let sourceColumns = sourceResponse.TableMetadata?.Columns || [];
+
+        // Exclude the 'key_id' field
+        sourceColumns = sourceColumns.filter(
+          (column) => column.Name.toLowerCase() !== "key_id"
+        );
 
         for (const db of databaseStorage) {
           const tablesInDb = await schemaInstance.getsTable(db);
