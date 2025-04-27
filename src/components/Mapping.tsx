@@ -72,18 +72,18 @@ const Mapping: React.FC = () => {
         if (response.data.success) {
           const rawMappings = response.data.data;
 
-          // Group mappings by source table
+          // Group mappings by a combination of standard_table and db_name
           const blocksBySourceTable = {};
 
           rawMappings.forEach((mapping) => {
-            const key = mapping.standard_table; // group by standard_table (corrected)
+            const key = `${mapping.standard_table}_${mapping.db_name}`; // Group by both standard_table and db_name
 
             if (!blocksBySourceTable[key]) {
               blocksBySourceTable[key] = {
                 id: Date.now().toString() + Math.random(), // or use uuid
-                selectedSourceTable: mapping.standard_table, // ✅ source = standard_table
-                selectedTargetTable: mapping.db_table, // ✅ target = db_table
-                selectedDatabaseStorage: mapping.db_name, // ✅ storage = standard_db
+                selectedSourceTable: mapping.standard_table, // source = standard_table
+                selectedTargetTable: mapping.db_table, // target = db_table
+                selectedDatabaseStorage: mapping.db_name, // storage = db_name
                 sourceSchema: [], // (optional) you might load it later
                 targetSchema: [],
                 mappings: [],
@@ -91,10 +91,12 @@ const Mapping: React.FC = () => {
             }
 
             blocksBySourceTable[key].mappings.push({
-              source: mapping.standard_column, // ✅ source = standard_column
-              target: mapping.db_column, // ✅ target = db_column
+              source: mapping.standard_column, // source = standard_column
+              target: mapping.db_column, // target = db_column
             });
           });
+
+          console.log(blocksBySourceTable);
 
           const mappingBlocks = Object.values(blocksBySourceTable);
 
@@ -114,22 +116,21 @@ const Mapping: React.FC = () => {
   const handleSubmitAll = async () => {
     try {
       const allPayloads = mappingBlocks.flatMap((block) =>
-        block.mappings
-          .map((m: any) => ({
-            dbName: block.selectedDatabaseStorage,
-            dbTable: block.selectedSourceTable,
-            dbColumn: m.target,
-            standardColumn: m.source,
-            standardTable: block.selectedSourceTable,
-            standardDb: "hospital_data"
-          }))
+        block.mappings.map((m: any) => ({
+          dbName: block.selectedDatabaseStorage,
+          dbTable: block.selectedSourceTable,
+          dbColumn: m.target,
+          standardColumn: m.source,
+          standardTable: block.selectedSourceTable,
+          standardDb: "hospital_data",
+        }))
       );
+
+      console.log(allPayloads);
 
       if (allPayloads.length === 0) {
         return message.warning("No mappings to submit.");
       }
-
-      console.log(allPayloads);
 
       const res = await mappingServiceInstance.createMappings(allPayloads);
 

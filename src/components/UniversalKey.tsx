@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Button, Select, Table, Spin, Card, Checkbox, message } from "antd";
+import { Button, Select, Spin, Card, Space, message } from "antd";
 import {
   AthenaClient,
   ListDatabasesCommand,
   ListTableMetadataCommand,
   GetTableMetadataCommand,
 } from "@aws-sdk/client-athena";
+import { DeleteOutlined } from "@ant-design/icons";
+
+const { Option } = Select;
 
 const UniversalKey = () => {
   const [databases, setDatabases] = useState<string[]>([]);
@@ -13,10 +16,10 @@ const UniversalKey = () => {
   const [schema, setSchema] = useState<any[]>([]);
   const [selectedDatabase, setSelectedDatabase] = useState<string>("");
   const [selectedTable, setSelectedTable] = useState<string>("");
-  const [supportKeys, setSupportKeys] = useState<string[]>([]);
+  const [universalKeys, setUniversalKeys] = useState<{ fields: string[] }[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
-
-  const universalKey = "resource_id";
 
   const athenaClient = new AthenaClient({
     region: process.env.REACT_APP_AWS_REGION,
@@ -59,111 +62,155 @@ const UniversalKey = () => {
   }, [selectedDatabase]);
 
   useEffect(() => {
-    if (!selectedTable) return;
-
-    const fetchSchemaAndData = async () => {
+    if (!selectedTable || !selectedDatabase) return;
+    const fetchSchemaAndUniversalKeys = async () => {
       setLoading(true);
       try {
         // Fetch table schema
-        const schemaCommand = new GetTableMetadataCommand({
+        const command = new GetTableMetadataCommand({
           CatalogName: "AwsDataCatalog",
           DatabaseName: selectedDatabase,
           TableName: selectedTable,
         });
-        const schemaResponse = await athenaClient.send(schemaCommand);
-        const schemaData = schemaResponse.TableMetadata?.Columns || [];
+        const response = await athenaClient.send(command);
+        const schemaData = response.TableMetadata?.Columns || [];
         setSchema(schemaData);
 
-        // Fetch pre-selected data from the API
-        const dataResponse = await fetch(
-          `${process.env.REACT_APP_API_URL}/athena/data?catalog=AwsDataCatalog&database=bk_health_lakehouse_db&table=tables`
+        // Fetch existing universal keys
+        const res = await fetch(
+          `${process.env.REACT_APP_API_URL}/athena/universal-keys?table_name=${selectedTable}&database=${selectedDatabase}`
         );
-        if (!dataResponse.ok) {
-          throw new Error("Failed to fetch data");
-        }
-        const data = await dataResponse.json();
-
-        // Find the entry matching the selected table and parse column_name
-        const tableEntry = data.find(
-          (item: any) => item.table_name === selectedTable
-        );
-        if (tableEntry && tableEntry.column_name) {
-          const preSelectedColumns = tableEntry.column_name.split(",");
-          setSupportKeys(preSelectedColumns);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.universal_keys)) {
+            setUniversalKeys(
+              data.universal_keys.map((key) => ({ fields: key.split(",") })) // Split the comma-separated string into an array of fields
+            );
+          } else {
+            setUniversalKeys([]); // If fetch fails, just empty
+          }
         } else {
-          setSupportKeys([]); // Reset if no matching table or no columns
+          setUniversalKeys([]); // If fetch fails, just empty
         }
       } catch (err) {
-        console.error("Error fetching schema or data:", err);
-        message.error("Error loading table data");
+        console.error("Error fetching schema or universal keys:", err);
+        message.error("Error loading table schema or universal keys");
       } finally {
         setLoading(false);
       }
     };
-    fetchSchemaAndData();
-  }, [selectedTable]);
+    fetchSchemaAndUniversalKeys();
+  }, [selectedTable, selectedDatabase]);
 
-  const handleSupportKeyChange = (key: string) => {
-    setSupportKeys((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+  const handleAddUniversalKey = () => {
+    setUniversalKeys((prev) => [...prev, { fields: [] }]);
+  };
+
+  const handleAddField = (index: number) => {
+    setUniversalKeys((prev) =>
+      prev.map((uk, idx) =>
+        idx === index ? { ...uk, fields: [...uk.fields, ""] } : uk
+      )
     );
   };
 
+  const handleFieldChange = (
+    uKeyIndex: number,
+    fieldIndex: number,
+    value: string
+  ) => {
+    setUniversalKeys((prev) =>
+      prev.map((uk, idx) => {
+        if (idx !== uKeyIndex) return uk;
+        const newFields = [...uk.fields];
+        newFields[fieldIndex] = value;
+        return { ...uk, fields: newFields };
+      })
+    );
+  };
+
+  const handleRemoveField = (uKeyIndex: number, fieldIndex: number) => {
+    setUniversalKeys((prev) =>
+      prev.map((uk, idx) => {
+        if (idx !== uKeyIndex) return uk;
+        const newFields = uk.fields.filter((_, fIdx) => fIdx !== fieldIndex);
+        return { ...uk, fields: newFields };
+      })
+    );
+  };
+
+  const handleRemoveUniversalKey = (index: number) => {
+    setUniversalKeys((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
   const handleSubmit = async () => {
+    if (universalKeys.length === 0) {
+      message.warning("Please add at least one Universal Key");
+      return;
+    }
+
     const requestData = {
       table_name: selectedTable,
-      column_name: supportKeys,
-      database: "bk_health_lakehouse_db"
+      universal_keys: universalKeys.map((uk) => uk.fields),
+      database: selectedDatabase,
     };
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/athena/create`,
+        `${process.env.REACT_APP_API_URL}/athena/universal-keys`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestData),
         }
       );
-
       const result = await response.json();
       if (response.ok) {
-        message.success(result.message);
+        message.success(result.message || "Universal keys saved successfully!");
       } else {
-        message.error("Failed to update data");
+        message.error(result.message || "Failed to save universal keys");
       }
     } catch (error) {
-      console.error("Error submitting data:", error);
-      message.error("An error occurred");
+      console.error("Error submitting universal keys:", error);
+      message.error("Error occurred while saving");
     }
   };
 
   return (
-    <Card title="Universal Key Selection">
+    <Card title="Universal Key Management">
       <Select
         placeholder="Select Database"
         style={{ width: "100%", marginBottom: 10 }}
-        onChange={setSelectedDatabase}
+        value={selectedDatabase || undefined}
+        onChange={(value) => {
+          setSelectedDatabase(value);
+          setSelectedTable("");
+          setSchema([]);
+          setUniversalKeys([]);
+        }}
       >
         {databases.map((db) => (
-          <Select.Option key={db} value={db}>
+          <Option key={db} value={db}>
             {db}
-          </Select.Option>
+          </Option>
         ))}
       </Select>
 
       <Select
         placeholder="Select Table"
         style={{ width: "100%", marginBottom: 10 }}
-        onChange={setSelectedTable}
+        value={selectedTable || undefined}
+        onChange={(value) => {
+          setSelectedTable(value);
+          setSchema([]);
+          setUniversalKeys([]);
+        }}
         disabled={!selectedDatabase}
       >
         {tables.map((table) => (
-          <Select.Option key={table} value={table}>
+          <Option key={table} value={table}>
             {table}
-          </Select.Option>
+          </Option>
         ))}
       </Select>
 
@@ -172,37 +219,93 @@ const UniversalKey = () => {
       ) : (
         schema.length > 0 && (
           <>
-            <Table
-              dataSource={schema.map((col) => ({ key: col.Name, ...col }))}
-              columns={[
-                {
-                  title: "Column Name",
-                  dataIndex: "Name",
-                },
-                {
-                  title: "Type",
-                  dataIndex: "Type",
-                },
-                {
-                  title: "Support Key",
-                  dataIndex: "supportKey",
-                  render: (_, record) => (
-                    <Checkbox
-                      checked={supportKeys.includes(record.Name)}
-                      onChange={() => handleSupportKeyChange(record.Name)}
-                      disabled={record.Name === universalKey}
-                    />
-                  ),
-                },
-              ]}
-            />
+            {universalKeys.map((uk, idx) => (
+              <div
+                key={idx}
+                style={{
+                  border: "1px solid #e0e0e0",
+                  padding: 10,
+                  marginBottom: 10,
+                  borderRadius: 6,
+                  background: "#fafafa",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <strong>Universal Key {idx + 1}</strong>
+                  <Button
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleRemoveUniversalKey(idx)}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 10,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                  }}
+                >
+                  {uk.fields.map((field, fIdx) => (
+                    <Space key={fIdx} style={{ marginBottom: 8 }}>
+                      <Select
+                        placeholder="Select field"
+                        value={field}
+                        style={{ width: 200 }}
+                        onChange={(value) =>
+                          handleFieldChange(idx, fIdx, value)
+                        }
+                      >
+                        {(schema || []).map((col) => (
+                          <Option key={col.Name} value={col.Name}>
+                            {col.Name}
+                          </Option>
+                        ))}
+                      </Select>
+                      <Button
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveField(idx, fIdx)}
+                      />
+                    </Space>
+                  ))}
+                </div>
+
+                <Button
+                  type="dashed"
+                  size="small"
+                  onClick={() => handleAddField(idx)}
+                  style={{ marginTop: 10 }}
+                >
+                  + Add Field
+                </Button>
+              </div>
+            ))}
+
+            <Button
+              type="dashed"
+              onClick={handleAddUniversalKey}
+              style={{ width: "100%", marginBottom: 10 }}
+            >
+              + Add Universal Key
+            </Button>
 
             <Button
               type="primary"
               onClick={handleSubmit}
-              style={{ marginTop: 10 }}
+              style={{ width: "100%" }}
+              disabled={universalKeys.length === 0}
             >
-              Submit
+              Submit Universal Keys
             </Button>
           </>
         )
