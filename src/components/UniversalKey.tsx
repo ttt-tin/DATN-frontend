@@ -20,6 +20,7 @@ const UniversalKey = () => {
     []
   );
   const [loading, setLoading] = useState(false);
+  const [submitUniversalKeysLoading, seSubmitUniversalKeysLoading] = useState(false);
 
   const athenaClient = new AthenaClient({
     region: process.env.REACT_APP_AWS_REGION,
@@ -149,6 +150,8 @@ const UniversalKey = () => {
       return;
     }
 
+    seSubmitUniversalKeysLoading(true);
+
     const requestData = {
       table_name: selectedTable,
       universal_keys: universalKeys.map((uk) => uk.fields),
@@ -165,6 +168,10 @@ const UniversalKey = () => {
         }
       );
       const result = await response.json();
+
+      setTimeout(() => {
+        seSubmitUniversalKeysLoading(false);
+      }, 2000);
       if (response.ok) {
         message.success(result.message || "Universal keys saved successfully!");
       } else {
@@ -304,6 +311,7 @@ const UniversalKey = () => {
               onClick={handleSubmit}
               style={{ width: "100%" }}
               disabled={universalKeys.length === 0}
+              loading={submitUniversalKeysLoading}
             >
               Submit Universal Keys
             </Button>

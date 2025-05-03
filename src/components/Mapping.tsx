@@ -37,6 +37,7 @@ const Mapping: React.FC = () => {
   const [isSchemaModalVisible, setIsSchemaModalVisible] = useState(false);
   const [availableSchemas, setAvailableSchemas] = useState<string[]>([]);
   const [selectedSchemaName, setSelectedSchemaName] = useState<string>("");
+  const [mappingLoading, setMappingLoading] = useState(false);
 
   const selectedCatalog = "AwsDataCatalog";
   const selectedDatabase = "hospital_data";
@@ -105,7 +106,7 @@ const Mapping: React.FC = () => {
           message.error(response.data.message || "Failed to fetch mappings.");
         }
       } catch (error) {
-        console.error("Error fetching mappings:", error);
+        console.error("Error fetching mappings:", error.message);
         message.error("Error fetching mappings.");
       }
     };
@@ -132,13 +133,19 @@ const Mapping: React.FC = () => {
         return message.warning("No mappings to submit.");
       }
 
+      setMappingLoading(true);
+
       const res = await mappingServiceInstance.createMappings(allPayloads);
 
-      res.success
-        ? message.success("All mappings submitted successfully!")
-        : message.error(res.message);
+      setTimeout(() => {
+        setMappingLoading(false);
+        res.success
+          ? message.success("All mappings submitted successfully!")
+          : message.error(res.message);
+      }, 2000);
     } catch (error) {
       console.error(error);
+      setMappingLoading(false);
       message.error("Error submitting mappings.");
     }
   };
@@ -421,6 +428,7 @@ const Mapping: React.FC = () => {
           <Button
             type="primary"
             onClick={handleSubmitAll}
+            loading={mappingLoading}
             style={{ marginLeft: 10 }}
           >
             Submit All Mappings

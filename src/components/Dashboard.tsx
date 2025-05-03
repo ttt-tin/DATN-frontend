@@ -24,6 +24,8 @@ const { Title } = Typography;
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const [extractLoading, setExtractLoading] = useState(false);
+
   const [s3Loading, setS3Loading] = useState(true);
   const [s3Data, setS3Data] = useState({
     bucketDistribution: [],
@@ -157,10 +159,19 @@ const Dashboard: React.FC = () => {
 
   const handleManualTrigger = () => {
     setLoading(true);
-    runScriptInstance.run();
+    runScriptInstance.runCleaning();
     setTimeout(() => {
       setLoading(false);
       message.success("Session triggered successfully!");
+    }, 2000);
+  };
+
+  const handleManualTriggerExtract = () => {
+    setExtractLoading(true);
+    runScriptInstance.run();
+    setTimeout(() => {
+      setExtractLoading(false);
+      message.success("Extract triggered successfully!");
     }, 2000);
   };
 
@@ -293,6 +304,15 @@ const Dashboard: React.FC = () => {
         <Divider orientation="left">Trigger a Session Manually</Divider>
         <Button type="primary" onClick={handleManualTrigger} loading={loading}>
           Trigger Session
+        </Button>
+
+        <Button
+          type="outlined"
+          onClick={handleManualTriggerExtract}
+          loading={extractLoading}
+          style={{ marginLeft: "16px" }}
+        >
+          Trigger Extract
         </Button>
       </Card>
       <Row gutter={16} style={{ marginBottom: "16px" }}>

@@ -8,6 +8,7 @@ const { Title } = Typography;
 const Constraints: React.FC = () => {
   const [inputs, setInputs] = useState<string[]>([""]); // Array to hold input values
   const [constraintTable, setConstraintTable] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
   // Handler to add a new input line below a specific line
   const handleAddInputBelow = (index: number) => {
@@ -40,8 +41,18 @@ const Constraints: React.FC = () => {
   const handleSave = async () => {
     const concatenatedString = inputs.join("\n"); // Join all inputs with newline characters
     try {
-      const result = await constraintService.create(concatenatedString, constraintTable);
+      setLoading(true);
+      const result = await constraintService.create(
+        concatenatedString,
+        constraintTable
+      );
       console.log(result);
+      setLoading(false);
+      if (result.status === 200) {
+        message.success("Data saved successfully.");
+      } else {
+        message.error("Error: " + result.data.message);
+      }
     } catch (error) {
       message.error("Error saving data.");
       console.error(error);
@@ -55,9 +66,16 @@ const Constraints: React.FC = () => {
 
   return (
     <div style={{ width: "100%" }}>
-      <Space style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, width: "100%" }}>
+      <Space
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 16,
+          width: "100%",
+        }}
+      >
         <h2>Constraint Configuration</h2>
-        <Button type="primary" onClick={handleSave}>
+        <Button type="primary" onClick={handleSave} loading={loading}>
           Save
         </Button>
       </Space>
@@ -71,7 +89,15 @@ const Constraints: React.FC = () => {
       </Space>
       <Space direction="vertical" style={{ width: "100%", marginBottom: 16 }}>
         {inputs.map((input, index) => (
-          <div key={index} style={{ display: "flex", width: "100%", marginBottom: 8, alignItems: "center" }}>
+          <div
+            key={index}
+            style={{
+              display: "flex",
+              width: "100%",
+              marginBottom: 8,
+              alignItems: "center",
+            }}
+          >
             <Input
               value={input}
               onChange={(e) => handleInputChange(e.target.value, index)}
@@ -80,7 +106,10 @@ const Constraints: React.FC = () => {
             />
             <MinusCircleOutlined
               onClick={() => handleDeleteInput(index)}
-              style={{ color: inputs.length === 1 ? "#d9d9d9" : "red", marginLeft: 8 }}
+              style={{
+                color: inputs.length === 1 ? "#d9d9d9" : "red",
+                marginLeft: 8,
+              }}
             />
           </div>
         ))}
