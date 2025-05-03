@@ -24,6 +24,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import runScriptInstance from "../services/run-script.ts";
 import notificationServiceInstance from "../services/notification.ts";
+import historyServiceInstance from "../services/history.ts";
 
 const { Title } = Typography;
 
@@ -37,46 +38,6 @@ const Dashboard: React.FC = () => {
     fileTypeStats: [],
     monthlyUploads: [],
   });
-
-  const [notifications, setNotifications] = useState([]);
-  const [open, setOpen] = useState(false);
-
-  const fetchNotifications = async () => {
-    try {
-      const res = await notificationServiceInstance.get();
-      setNotifications(res);
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    }
-  };
-
-  const handleClick = async () => {
-    await fetchNotifications();
-    setOpen(true);
-  };
-
-  const content = (
-    <List
-      size="small"
-      dataSource={notifications}
-      locale={{ emptyText: "No notifications" }}
-      renderItem={(item: any) => {
-        const color =
-          item.status === "Success"
-            ? "green"
-            : item.status === "Error"
-            ? "red"
-            : "gray";
-        return (
-          <List.Item>
-            <span style={{ color }}>
-              <strong>{item.type}</strong>: {item.desc}
-            </span>
-          </List.Item>
-        );
-      }}
-    />
-  );
 
   useEffect(() => {
     const fetchS3Stats = async () => {
@@ -346,35 +307,7 @@ const Dashboard: React.FC = () => {
             </Card>
           </Col>
         </Row>
-        <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ fontWeight: 500 }}>Trigger a Session Manually</div>
-            <Popover
-              content={content}
-              title="Notifications"
-              trigger="click"
-              open={open}
-              onOpenChange={(visible) => setOpen(visible)}
-            >
-              <Badge count={notifications.length} offset={[0, 10]}>
-                <Button
-                  icon={<BellOutlined />}
-                  type="text"
-                  onClick={handleClick}
-                />
-              </Badge>
-            </Popover>
-          </div>
-
-          {/* Divider phía dưới */}
-          <Divider style={{ marginTop: 8 }} />
-        </>
+        <Divider orientation="left">Trigger a Session Manually</Divider>
         <Button type="primary" onClick={handleManualTrigger} loading={loading}>
           Trigger Session
         </Button>

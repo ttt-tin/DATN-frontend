@@ -8,9 +8,10 @@ import {
   DesktopOutlined,
   HistoryOutlined,
   DatabaseOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Layout, Menu, theme } from "antd";
+import { Badge, Button, Layout, List, Menu, Popover, theme } from "antd";
 import {
   Route,
   Routes,
@@ -32,6 +33,7 @@ import Relation from "./components/Relation.tsx";
 import DataSource from "./components/DataSource.tsx";
 import Initialization from "./components/Initialization.tsx";
 import SidebarMenu from "./components/Sidebar.tsx";
+import notificationServiceInstance from "./services/notification.ts";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -55,12 +57,53 @@ function getItem(
 
 const App: React.FC = () => {
   const [collapsed, setCollapsed] = useState(true);
-    useState(false);
+  useState(false);
   const {
     token: { colorBgContainer },
   } = theme.useToken();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [notifications, setNotifications] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await notificationServiceInstance.get();
+      setNotifications(res);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
+
+  const handleClick = async () => {
+    await fetchNotifications();
+    setOpen(true);
+  };
+
+  const content = (
+    <List
+      size="small"
+      dataSource={notifications}
+      locale={{ emptyText: "No notifications" }}
+      renderItem={(item: any) => {
+        const color =
+          item.status === "Success"
+            ? "green"
+            : item.status === "Error"
+            ? "red"
+            : "gray";
+        return (
+          <List.Item>
+            <span style={{ color }}>
+              <strong>{item.type}</strong>: {item.desc} -{" "}
+              {item.regDate.slice(0, 19).replace("T", " ")}
+            </span>
+          </List.Item>
+        );
+      }}
+    />
+  );
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#e6e6e6" }}>
@@ -82,18 +125,44 @@ const App: React.FC = () => {
       >
         <div
           style={{
-            fontSize: 32,
-            fontWeight: 800,
-            color: "#ffffff",
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
-            cursor: "pointer",
-            textShadow: "1px 1px 3px rgba(0, 0, 0, 0.3)",
-            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
           }}
-          onClick={() => navigate("/dashboard")}
         >
-          BK-Health
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 800,
+              color: "#ffffff",
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+              cursor: "pointer",
+              textShadow: "1px 1px 3px rgba(0, 0, 0, 0.3)",
+              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+            }}
+            onClick={() => navigate("/dashboard")}
+          >
+            BK-Health
+          </div>
+
+          <Popover
+            content={content}
+            title="Notifications"
+            trigger="click"
+            open={open}
+            onOpenChange={(visible) => setOpen(visible)}
+          >
+            <Badge count={notifications.length} offset={[0, 10]}>
+              <Button
+                icon={<BellOutlined style={{ fontSize: 28 }} />}
+                type="text"
+                onClick={handleClick}
+                style={{ color: "#ffffff" }}
+              />
+            </Badge>
+          </Popover>
         </div>
       </Header>
 
