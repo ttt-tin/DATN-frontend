@@ -10,8 +10,18 @@ import {
   Upload,
   Form,
   Typography,
+  Checkbox,
+  Tag,
+  Layout,
+  Card,
 } from "antd";
-import { PlusOutlined, UploadOutlined, CloudOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  UploadOutlined,
+  CloudOutlined,
+  FolderOutlined,
+  FileOutlined,
+} from "@ant-design/icons";
 import {
   connectToExternalStorage,
   createVolume,
@@ -21,7 +31,9 @@ import {
   insertMetadataToInternalS3,
 } from "../utils/athenaUtil.ts";
 import DownloadFile from "./downloadFileButton.tsx";
+
 const { Title } = Typography;
+const { Content } = Layout;
 
 const Volume: React.FC = () => {
   const [error, setError] = useState("");
@@ -43,6 +55,7 @@ const Volume: React.FC = () => {
     description: "",
     patientId: "",
   });
+  const [isTextData, setIsTextData] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -152,14 +165,13 @@ const Volume: React.FC = () => {
     const isExternalVolume = selectedTable.endsWith("_external_volume_table");
   
     if (isExternalVolume) {
-      setIsUploadFileModalOpen(true);
       return;
     }
 
     try {
       const response = await fetch(
         process.env.REACT_APP_API_URL +
-          `/athena/metadata?table_name=patient_repaired`
+          `/athena/metadata?table_name=patient`
       );
       const metadata = await response.json();
       const columns = metadata.column_name.split(",");
@@ -246,10 +258,12 @@ const Volume: React.FC = () => {
 
   const handleCreateVolume = async () => {
     try {
-      await createVolume("bk-health-bucket-landing", newVolumeName);
+      const volumeName = isTextData ? `${newVolumeName}_text_data` : newVolumeName;
+      await createVolume("bk-health-bucket-landing", volumeName);
       message.success("Volume created successfully.");
       setIsCreateVolumeModalOpen(false);
       setNewVolumeName("");
+      setIsTextData(false);
     } catch (err) {
       console.error("Error creating volume:", err);
       message.error("Failed to create volume.");
@@ -284,65 +298,130 @@ const Volume: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: "16px" }}>
-      <Title level={2} style={{ marginBottom: "20px" }}>
-        Volume Explorer
-      </Title>
-      <div style={{ marginBottom: "16px" }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setIsCreateVolumeModalOpen(true)}
-          style={{ marginRight: "8px" }}
-        >
-          New Volume
-        </Button>
-        <Button
-          type="dashed"
-          icon={<CloudOutlined />}
-          onClick={() => setIsCreateExternalVolumeModalOpen(true)}
-          style={{ marginRight: "8px" }}
-        >
-          Create External Volume
-        </Button>
-        <Button
-          icon={<UploadOutlined />}
-          onClick={handleUploadButtonClick}
-          disabled={!selectedTable}
-        >
-          Upload File
-        </Button>
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <div style={{ padding: '20px', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Title level={2} style={{ margin: 0 }}>
+          <FolderOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+          Volume Management
+        </Title>
       </div>
-      <Select
-        placeholder="Select Table"
-        style={{ width: "100%", marginBottom: "16px" }}
-        options={tables.map((table) => ({ label: table, value: table }))}
-        onChange={handleTableSelect}
-        value={selectedTable}
-      />
-      {loading ? (
-        <Spin style={{ display: "block", margin: "0 auto" }} />
-      ) : (
-        <Table
-          columns={columns}
-          dataSource={records}
-          rowKey={(record) => JSON.stringify(record)}
-          pagination={{ pageSize: 10 }}
-        />
-      )}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      
+      <Content style={{ padding: '20px' }}>
+        <div style={{ 
+          background: '#fff', 
+          padding: '24px', 
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />}
+                onClick={() => setIsCreateVolumeModalOpen(true)}
+              >
+                Create Volume
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<CloudOutlined />}
+                onClick={() => setIsCreateExternalVolumeModalOpen(true)}
+              >
+                Create External Volume
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<UploadOutlined />}
+                onClick={() => {handleUploadButtonClick()}}
+              >
+                Upload File
+              </Button>
+            </div>
+          </div>
+
+          <Card bordered={false} style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <Select
+              placeholder="Select Table"
+              style={{ width: "100%", marginBottom: "16px" }}
+              options={tables.map((table) => {
+                let displayName = table;
+                let tags: React.ReactNode[] = [];
+
+                if (table.endsWith("_external_volume_table")) {
+                  displayName = displayName.replace("_external_volume_table", "");
+                  tags.push(
+                    <Tag color="green" key="external" style={{ marginLeft: 8 }}>
+                      External
+                    </Tag>
+                  );
+                } 
+                else if (table.endsWith("_volume_table")) {
+                  displayName = displayName.replace("_volume_table", "");
+                }
+
+                if (displayName.endsWith("_text_data")) {
+                  displayName = displayName.replace("_text_data", "");
+                  tags.push(
+                    <Tag color="blue" key="text-data" style={{ marginLeft: 8 }}>
+                      Text Data
+                    </Tag>
+                  );
+                }
+
+                return {
+                  label: (
+                    <span>
+                      {displayName}
+                      {tags}
+                    </span>
+                  ),
+                  value: table,
+                };
+              })}
+              onChange={handleTableSelect}
+              value={selectedTable}
+            />
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <Spin size="large" />
+              </div>
+            ) : (
+              <Table
+                columns={columns}
+                dataSource={records}
+                rowKey={(record) => JSON.stringify(record)}
+                pagination={{ pageSize: 10 }}
+                size="middle"
+                bordered
+              />
+            )}
+            {error && <p style={{ color: "red" }}>{error}</p>}
+          </Card>
+        </div>
+      </Content>
 
       <Modal
         title="Create New Volume"
         visible={isCreateVolumeModalOpen}
         onOk={handleCreateVolume}
-        onCancel={() => setIsCreateVolumeModalOpen(false)}
+        onCancel={() => {
+          setIsCreateVolumeModalOpen(false);
+          setNewVolumeName("");
+          setIsTextData(false);
+        }}
       >
         <Input
           placeholder="Enter volume name"
           value={newVolumeName}
           onChange={(e) => setNewVolumeName(e.target.value)}
+          style={{ marginBottom: "16px" }}
         />
+        <Checkbox
+          checked={isTextData}
+          onChange={(e) => setIsTextData(e.target.checked)}
+        >
+          This is a text data volume
+        </Checkbox>
       </Modal>
 
       <Modal
@@ -398,7 +477,7 @@ const Volume: React.FC = () => {
           />
         ))}
       </Modal>
-    </div>
+    </Layout>
   );
 };
 

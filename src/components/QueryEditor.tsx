@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Button, Select, Table, Spin, Collapse, Card, Typography } from "antd";
+import { Button, Select, Table, Spin, Collapse, Card, Typography, Layout } from "antd";
+import { DatabaseOutlined, CodeOutlined, TableOutlined } from "@ant-design/icons";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-sql";
 import "ace-builds/src-noconflict/theme-monokai";
@@ -16,6 +17,7 @@ import {
 
 const { Panel } = Collapse;
 const { Title } = Typography;
+const { Content } = Layout;
 
 const QueryEditor: React.FC = () => {
   const [catalogs, setCatalogs] = useState<string[]>([]);
@@ -182,142 +184,168 @@ const QueryEditor: React.FC = () => {
   }, [selectedTable]);
 
   return (
-    <div style={{ padding: "16px" }}>
-      {/* Title Section */}
-      <Title level={2} style={{ marginBottom: "20px" }}>
-        Athena Query Editor
-      </Title>
-
-      {/* Main Content Section with Flexbox */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        {/* Left Section: Database Selector and Schema */}
-        <div
-          style={{
-            width: "48%",
-            padding: "16px",
-            borderRight: "2px solid #ccc",
-          }}
-        >
-          <h3>Database Section</h3>
-
-          {/* Catalog Selector */}
-          <h4>Catalog</h4>
-          <Select
-            placeholder="Select Catalog"
-            value={selectedCatalog}
-            onChange={setSelectedCatalog}
-            style={{ width: "100%", marginBottom: "16px" }}
-            options={catalogs.map((catalog) => ({
-              label: catalog,
-              value: catalog,
-            }))}
-          />
-
-          {/* Database Selector */}
-          <h4>Database</h4>
-          <Select
-            placeholder="Select Database"
-            value={selectedDatabase}
-            onChange={setSelectedDatabase}
-            style={{ width: "100%", marginBottom: "16px" }}
-            disabled={!selectedCatalog}
-            options={databases.map((db) => ({
-              label: db,
-              value: db,
-            }))}
-          />
-
-          {/* Table Selector */}
-          <h4>Table</h4>
-          <Select
-            placeholder="Select Table"
-            style={{ width: "100%", marginBottom: "16px" }}
-            disabled={!selectedDatabase}
-            onChange={setSelectedTable}
-            options={tables.map((table) => ({
-              label: table,
-              value: table,
-            }))}
-          />
-
-          {/* Schema Display */}
-          {selectedTable && schema.length > 0 && (
-            <Collapse defaultActiveKey={[]} style={{ marginTop: "20px" }}>
-              <Panel header="Table Schema" key="1">
-                <Table
-                  dataSource={schema}
-                  columns={[
-                    { title: "Attribute", dataIndex: "Name", key: "Name" },
-                    { title: "Type", dataIndex: "Type", key: "Type" },
-                  ]}
-                  size="small"
-                  pagination={false}
-                  bordered
-                  rowKey="Name"
-                />
-              </Panel>
-            </Collapse>
-          )}
-        </div>
-
-        {/* Right Section: Query Editor and Results */}
-        <div style={{ width: "48%", padding: "16px" }}>
-          <h3>Query Editor</h3>
-          <AceEditor
-            mode="sql"
-            theme="monokai"
-            value={query}
-            onChange={setQuery}
-            name="query-editor"
-            width="100%"
-            height="300px"
-          />
-          <Button
-            type="primary"
-            onClick={runQuery}
-            loading={loading}
-            style={{ marginTop: "16px", width: "100%" }}
-            disabled={!selectedDatabase || !query}
-          >
-            Run Query
-          </Button>
-
-          {error && <p style={{ color: "red" }}>{error}</p>}
-
-          {/* Loading Spinner */}
-          {loading && !error && (
-            <div style={{ textAlign: "center", marginTop: "20px" }}>
-              <Spin size="large" />
-              <p>Query is running, please wait...</p>
-            </div>
-          )}
-
-          {/* Results Table */}
-          {!loading && results.length > 0 && (
-            <Table
-              dataSource={results}
-              columns={
-                results[0]
-                  ? Object.keys(results[0]).map((key) => ({
-                      title: key,
-                      dataIndex: key,
-                    }))
-                  : []
-              }
-              style={{ marginTop: "16px" }}
-              scroll={{ x: "max-content" }}
-              bordered
-            />
-          )}
-        </div>
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <div style={{ padding: '20px', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Title level={2} style={{ margin: 0 }}>
+          <CodeOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+          Athena Query Editor
+        </Title>
       </div>
-    </div>
+      
+      <Content style={{ padding: '20px' }}>
+        <div style={{ 
+          background: '#fff', 
+          padding: '24px', 
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ display: 'flex', gap: '20px' }}>
+            {/* Left Section: Database Selector and Schema */}
+            <div style={{ width: '30%' }}>
+              <Title level={4} style={{ marginBottom: '20px' }}>
+                <DatabaseOutlined style={{ marginRight: '8px', color: '#722ed1' }} />
+                Database Section
+              </Title>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4>Catalog</h4>
+                <Select
+                  placeholder="Select Catalog"
+                  value={selectedCatalog}
+                  onChange={setSelectedCatalog}
+                  style={{ width: "100%", marginBottom: "16px" }}
+                  options={catalogs.map((catalog) => ({
+                    label: catalog,
+                    value: catalog,
+                  }))}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4>Database</h4>
+                <Select
+                  placeholder="Select Database"
+                  value={selectedDatabase}
+                  onChange={setSelectedDatabase}
+                  style={{ width: "100%", marginBottom: "16px" }}
+                  disabled={!selectedCatalog}
+                  options={databases.map((db) => ({
+                    label: db,
+                    value: db,
+                  }))}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <h4>Table</h4>
+                <Select
+                  placeholder="Select Table"
+                  style={{ width: "100%", marginBottom: "16px" }}
+                  disabled={!selectedDatabase}
+                  onChange={setSelectedTable}
+                  options={tables.map((table) => ({
+                    label: table,
+                    value: table,
+                  }))}
+                />
+              </div>
+
+              {selectedTable && schema.length > 0 && (
+                <Collapse defaultActiveKey={[]} style={{ marginTop: "20px" }}>
+                  <Panel header="Table Schema" key="1">
+                    <Table
+                      dataSource={schema}
+                      columns={[
+                        { title: "Attribute", dataIndex: "Name", key: "Name" },
+                        { title: "Type", dataIndex: "Type", key: "Type" },
+                      ]}
+                      size="small"
+                      pagination={false}
+                      bordered
+                      rowKey="Name"
+                    />
+                  </Panel>
+                </Collapse>
+              )}
+            </div>
+
+            {/* Right Section: Query Editor and Results */}
+            <div style={{ width: '70%' }}>
+              <Title level={4} style={{ marginBottom: '20px' }}>
+                <TableOutlined style={{ marginRight: '8px', color: '#52c41a' }} />
+                Query Editor
+              </Title>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <AceEditor
+                  mode="sql"
+                  theme="monokai"
+                  value={query}
+                  onChange={setQuery}
+                  name="query-editor"
+                  width="100%"
+                  height="300px"
+                  style={{ borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}
+                />
+              </div>
+
+              <Button
+                type="primary"
+                onClick={runQuery}
+                loading={loading}
+                style={{ marginBottom: '20px', width: '100%' }}
+                disabled={!selectedDatabase || !query}
+              >
+                Run Query
+              </Button>
+
+              {error && (
+                <div style={{ 
+                  padding: '10px', 
+                  background: '#fff2f0', 
+                  border: '1px solid #ffccc7',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ color: '#ff4d4f', margin: 0 }}>{error}</p>
+                </div>
+              )}
+
+              {loading && !error && (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <Spin size="large" />
+                  <p style={{ marginTop: '10px' }}>Query is running, please wait...</p>
+                </div>
+              )}
+
+              {results.length > 0 && (
+                <div style={{ 
+                  background: '#fff', 
+                  padding: '16px', 
+                  borderRadius: '4px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                }}>
+                  <Table
+                    dataSource={results}
+                    columns={
+                      results[0]
+                        ? Object.keys(results[0]).map((key) => ({
+                            title: key,
+                            dataIndex: key,
+                          }))
+                        : []
+                    }
+                    scroll={{ x: 'max-content' }}
+                    size="middle"
+                    bordered
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Content>
+    </Layout>
   );
 };
 

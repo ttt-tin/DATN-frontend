@@ -12,22 +12,26 @@ import {
   message,
   Typography,
   Space,
+  Layout,
 } from "antd";
 import {
   DeleteOutlined,
   FileTextOutlined,
   ThunderboltOutlined,
   PlusOutlined,
+  DatabaseOutlined,
 } from "@ant-design/icons";
 
 const { Option } = Select;
 const { Title } = Typography;
+const { Content } = Layout;
 
 interface DataSourceItem {
   id: number;
   name: string;
-  dataType: "batch" | "streaming";
-  fileType: "csv" | "json" | "parquet";
+  dataType: "batch" | "streaming" | null;
+  fileType: "csv" | "json" | "parquet" | null;
+  path: string;
 }
 
 const DataSource: React.FC = () => {
@@ -81,7 +85,7 @@ const DataSource: React.FC = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify([values]),
+          body: JSON.stringify(values),
         }
       );
 
@@ -142,55 +146,77 @@ const DataSource: React.FC = () => {
   };
 
   return (
-    <div>
-      <Title level={2} style={{ marginBottom: "20px" }}>
-        Data Sources
-      </Title>
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={showCreateModal}
-        style={{ marginBottom: 24 }}
-      >
-        Create Data Source
-      </Button>
-
-      <Row gutter={[16, 16]}>
-        {dataSources.map((item) => (
-          <Col xs={24} sm={12} md={8} key={item.id}>
-            <Card
-              hoverable
-              onClick={() => showDetails(item)}
-              actions={[
-                <div onClick={(e) => e.stopPropagation()}>
-                  <Popconfirm
-                    title="Are you sure to delete this data source?"
-                    onConfirm={() => handleDelete(item.id)}
-                    okText="Yes"
-                    cancelText="No" 
-                  >
-                    <DeleteOutlined key="delete" />
-                  </Popconfirm>
-                </div>,
-              ]}
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <div style={{ padding: '20px', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Title level={2} style={{ margin: 0 }}>
+          <DatabaseOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+          Data Sources
+        </Title>
+      </div>
+      
+      <Content style={{ padding: '20px' }}>
+        <div style={{ 
+          background: '#fff', 
+          padding: '24px', 
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ marginBottom: '20px' }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={showCreateModal}
             >
-              <Card.Meta
-                avatar={
-                  item.dataType === "batch" ? (
-                    <FileTextOutlined />
-                  ) : (
-                    <ThunderboltOutlined />
-                  )
-                }
-                title={item.name}
-                description={`Type: ${
-                  item.dataType === "batch" ? "Batch Processing" : "Streaming"
-                }`}
-              />
-            </Card>
-          </Col>
-        ))}
-      </Row>
+              Create Data Source
+            </Button>
+          </div>
+
+          <Row gutter={[16, 16]}>
+            {dataSources.map((item) => (
+              <Col xs={24} sm={12} md={8} key={item.id}>
+                <Card
+                  hoverable
+                  onClick={() => showDetails(item)}
+                  actions={[
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Popconfirm
+                        title="Are you sure to delete this data source?"
+                        onConfirm={() => handleDelete(item.id)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <DeleteOutlined key="delete" />
+                      </Popconfirm>
+                    </div>,
+                  ]}
+                  style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}
+                >
+                  <Card.Meta
+                    avatar={
+                      item.dataType === "batch" ? (
+                        <FileTextOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                      ) : item.dataType === "streaming" ? (
+                        <ThunderboltOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+                      ) : (
+                        <DatabaseOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />
+                      )
+                    }
+                    title={item.name}
+                    description={
+                      <div>
+                        <div>Type: {item.dataType ? (item.dataType === "batch" ? "Batch Processing" : "Streaming") : "Not specified"}</div>
+                        <div style={{ marginTop: '4px', color: '#8c8c8c', fontSize: '12px' }}>
+                          Path: {item.path}
+                        </div>
+                      </div>
+                    }
+                  />
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </div>
+      </Content>
 
       <Modal
         title="Create Data Source"
@@ -262,18 +288,22 @@ const DataSource: React.FC = () => {
             </p>
             <p>
               <strong>Data Type:</strong>{" "}
-              {selectedDataSource.dataType === "batch"
+              {selectedDataSource.dataType ? (selectedDataSource.dataType === "batch"
                 ? "Batch Processing"
-                : "Streaming"}
+                : "Streaming") : "Not specified"}
             </p>
             <p>
               <strong>File Type:</strong>{" "}
-              {selectedDataSource.fileType.toUpperCase()}
+              {selectedDataSource.fileType ? selectedDataSource.fileType.toUpperCase() : "Not specified"}
+            </p>
+            <p>
+              <strong>Path:</strong>{" "}
+              <span style={{ color: '#8c8c8c' }}>{selectedDataSource.path}</span>
             </p>
           </div>
         )}
       </Modal>
-    </div>
+    </Layout>
   );
 };
 

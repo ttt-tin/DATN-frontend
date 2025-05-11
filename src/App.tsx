@@ -9,6 +9,7 @@ import {
   HistoryOutlined,
   DatabaseOutlined,
   BellOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Badge, Button, Layout, List, Menu, Popover, theme } from "antd";
@@ -34,6 +35,7 @@ import DataSource from "./components/DataSource.tsx";
 import Initialization from "./components/Initialization.tsx";
 import SidebarMenu from "./components/Sidebar.tsx";
 import notificationServiceInstance from "./services/notification.ts";
+import Operation from "./components/Operation.tsx";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -203,6 +205,7 @@ const App: React.FC = () => {
               <Route path="/relation" element={<Relation />} />
               <Route path="/data-source" element={<DataSource />} />
               <Route path="/initialization" element={<Initialization />} />
+              <Route path="/operation" element={<Operation />} />
             </Routes>
           </Content>
 

@@ -1,13 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Tag, Button, Typography, message } from 'antd';
+import { Table, Tag, Button, Typography, message, Layout, Card } from 'antd';
+import { HistoryOutlined } from '@ant-design/icons';
 import historyServiceInstance from '../services/history.ts';
 
 const { Title } = Typography;
+const { Content } = Layout;
 
 const History: React.FC = () => {
   const navigate = useNavigate();
-
   const [sessionHistory, setSessionHistory] = React.useState<any>([]);
 
   React.useEffect(() => {
@@ -18,7 +19,6 @@ const History: React.FC = () => {
     try {
       const result = await historyServiceInstance.get();
       setSessionHistory(result);
-      console.log(result)
     }
     catch (error) {
       message.error(error.message);
@@ -97,12 +97,32 @@ const History: React.FC = () => {
   ];
 
   return (
-    <div>
-      <Title level={2} style={{ marginBottom: "20px" }}>
-        History
-      </Title>
-      <Table columns={columns} dataSource={sessionHistory} pagination={{ pageSize: 5 }} />
-    </div>
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <div style={{ padding: '20px', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Title level={2} style={{ margin: 0 }}>
+          <HistoryOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+          History
+        </Title>
+      </div>
+      
+      <Content style={{ padding: '20px' }}>
+        <div style={{ 
+          background: '#fff', 
+          padding: '24px', 
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <Table 
+            columns={columns} 
+            dataSource={sessionHistory} 
+            pagination={{ pageSize: 10 }}
+            size="middle"
+            bordered
+            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}
+          />
+        </div>
+      </Content>
+    </Layout>
   );
 };
 

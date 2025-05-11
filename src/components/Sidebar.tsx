@@ -9,6 +9,7 @@ import {
   HistoryOutlined,
   DatabaseOutlined,
   CloudDownloadOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { Menu, Layout } from "antd";
 import type { MenuProps } from "antd";
@@ -75,6 +76,7 @@ const SidebarMenu: React.FC = () => {
     getItem("Dashboard", "/dashboard", <DashboardOutlined />, () => navigate("/dashboard")),
     getItem("Explorer", "/explorer", <FolderOutlined />, () => navigate("/explorer")),
     getItem("Volume", "/volume", <FolderOpenOutlined />, () => navigate("/volume")),
+    getItem("Operation", "/operation", <SettingOutlined />, () => navigate("/operation")),
     getItem("Configuration", "config", <ToolOutlined />, undefined, configChildren),
     getItem("History", "/history", <HistoryOutlined />, () => navigate("/history")),
     getItem("Query Editor", "/query-editor", <DesktopOutlined />, () => navigate("/query-editor")),
