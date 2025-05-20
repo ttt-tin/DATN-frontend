@@ -18,6 +18,8 @@ import {
   PlusOutlined,
   ThunderboltOutlined,
   DeleteOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import mappingServiceInstance from "../services/mapping.ts";
 import schemaInstance from "../services/schema-define.ts";
@@ -28,6 +30,149 @@ import axios from "axios";
 
 const { Title } = Typography;
 const { Panel } = Collapse;
+
+const normalizeColumnName = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/[_\s-]/g, '') // Loại bỏ dấu gạch dưới, khoảng trắng và dấu gạch ngang
+    .replace(/[^a-z0-9]/g, ''); // Chỉ giữ lại chữ cái và số
+};
+
+const removeCommonPrefixesAndSuffixes = (name: string): string[] => {
+  const prefixes = ['ref_', 'reference_', 'fk_', 'foreign_key_', 'pk_', 'primary_key_'];
+  const suffixes = ['_ref', '_reference', '_id', '_key', '_fk', '_pk'];
+  
+  let variations = [name];
+  
+  // Xử lý prefixes
+  for (const prefix of prefixes) {
+    if (name.startsWith(prefix)) {
+      variations.push(name.slice(prefix.length));
+    }
+  }
+  
+  // Xử lý suffixes
+  for (const suffix of suffixes) {
+    if (name.endsWith(suffix)) {
+      variations.push(name.slice(0, -suffix.length));
+    }
+  }
+
+  // Thêm các biến thể đặc biệt
+  const baseName = name.replace(/_?(?:id|reference|ref|key|fk|pk)$/i, '');
+  if (baseName !== name) {
+    variations.push(baseName);
+    variations.push(baseName + 'id');
+    variations.push(baseName + '_id');
+    variations.push(baseName + 'reference');
+    variations.push(baseName + '_reference');
+  }
+  
+  return variations;
+};
+
+const getColumnSimilarity = (source: string, target: string): number => {
+  const normalizedSource = normalizeColumnName(source);
+  const normalizedTarget = normalizeColumnName(target);
+
+  // Kiểm tra các trường hợp đặc biệt
+  if (normalizedSource === normalizedTarget) return 1;
+  
+  // Xử lý các trường hợp phổ biến
+  const specialCases = {
+    'id': ['key_id', 'id', 'identifier', 'primary_key', 'reference', 'ref'],
+    'name': ['fullname', 'full_name', 'username', 'user_name'],
+    'date': ['created_date', 'updated_date', 'modified_date'],
+    'time': ['created_time', 'updated_time', 'modified_time'],
+    'type': ['category', 'classification', 'group'],
+    'status': ['state', 'condition'],
+    'description': ['desc', 'detail', 'info'],
+    'code': ['reference', 'ref', 'identifier'],
+    'amount': ['value', 'quantity', 'total'],
+    'price': ['cost', 'fee', 'charge'],
+  };
+
+  // Kiểm tra các trường hợp đặc biệt
+  for (const [key, variations] of Object.entries(specialCases)) {
+    if (variations.includes(normalizedSource) && variations.includes(normalizedTarget)) {
+      return 0.9;
+    }
+    if (normalizedSource === key && variations.includes(normalizedTarget)) {
+      return 0.9;
+    }
+    if (normalizedTarget === key && variations.includes(normalizedSource)) {
+      return 0.9;
+    }
+  }
+
+  // Xử lý các biến thể của tên cột
+  const sourceVariations = removeCommonPrefixesAndSuffixes(normalizedSource);
+  const targetVariations = removeCommonPrefixesAndSuffixes(normalizedTarget);
+
+  // Kiểm tra tất cả các biến thể
+  for (const sourceVar of sourceVariations) {
+    for (const targetVar of targetVariations) {
+      // Kiểm tra trường hợp đặc biệt cho patient và encounter
+      if ((sourceVar === 'patient' && targetVar === 'patient') ||
+          (sourceVar === 'encounter' && targetVar === 'encounter')) {
+        return 0.95;
+      }
+
+      if (sourceVar === targetVar) return 0.95;
+      
+      // Kiểm tra nếu một chuỗi chứa chuỗi kia
+      if (sourceVar.includes(targetVar) || targetVar.includes(sourceVar)) {
+        return 0.85;
+      }
+    }
+  }
+
+  // Kiểm tra các trường hợp đặc biệt cho patient và encounter
+  const specialPatterns = [
+    { pattern: /^(patient|encounter)(?:_(?:id|reference|ref))?$/i, weight: 0.95 },
+    { pattern: /^(?:id|reference|ref)_(patient|encounter)$/i, weight: 0.95 }
+  ];
+
+  for (const { pattern, weight } of specialPatterns) {
+    if (pattern.test(normalizedSource) && pattern.test(normalizedTarget)) {
+      return weight;
+    }
+  }
+
+  // Tính toán độ tương đồng cơ bản
+  const basicSimilarity = stringSimilarity.compareTwoStrings(normalizedSource, normalizedTarget);
+
+  // Nếu độ tương đồng cơ bản đã cao, trả về kết quả
+  if (basicSimilarity >= 0.8) {
+    return basicSimilarity;
+  }
+
+  // Kiểm tra các từ viết tắt phổ biến
+  const abbreviations = {
+    'id': 'identifier',
+    'desc': 'description',
+    'ref': 'reference',
+    'amt': 'amount',
+    'qty': 'quantity',
+    'num': 'number',
+    'dt': 'date',
+    'tm': 'time',
+    'nm': 'name',
+    'cd': 'code',
+    'fk': 'foreign_key',
+    'pk': 'primary_key',
+  };
+
+  const expandedSource = abbreviations[normalizedSource] || normalizedSource;
+  const expandedTarget = abbreviations[normalizedTarget] || normalizedTarget;
+
+  if (expandedSource !== normalizedSource || expandedTarget !== normalizedTarget) {
+    const expandedSimilarity = stringSimilarity.compareTwoStrings(expandedSource, expandedTarget);
+    return Math.max(basicSimilarity, expandedSimilarity);
+  }
+
+  return basicSimilarity;
+};
 
 const Mapping: React.FC = () => {
   const [tables, setTables] = useState<string[]>([]);
@@ -343,7 +488,7 @@ const Mapping: React.FC = () => {
 
         // Exclude the 'key_id' field
         sourceColumns = sourceColumns.filter(
-          (column) => column.Name.toLowerCase() !== "key_id"
+          (column) => column.Name?.toLowerCase() !== "key_id"
         );
 
         for (const db of databaseStorage) {
@@ -364,21 +509,21 @@ const Mapping: React.FC = () => {
               );
 
               const mappings = sourceColumns.map((sourceColumn) => {
-                const bestMatch = stringSimilarity.findBestMatch(
-                  sourceColumn.Name.toLowerCase(),
-                  targetColumns.map((col: any) => col.column_name.toLowerCase())
-                );
+                if (!sourceColumn.Name) return { source: '', target: '' };
+
+                const bestMatch = targetColumns.reduce((best, targetCol) => {
+                  const similarity = getColumnSimilarity(
+                    sourceColumn.Name,
+                    targetCol.column_name
+                  );
+                  return similarity > best.similarity
+                    ? { column: targetCol.column_name, similarity }
+                    : best;
+                }, { column: '', similarity: 0 });
 
                 return {
                   source: sourceColumn.Name,
-                  target:
-                    bestMatch.bestMatch.rating >= 0.8
-                      ? targetColumns.find(
-                          (col: any) =>
-                            col.column_name.toLowerCase() ===
-                            bestMatch.bestMatch.target
-                        )?.column_name || ""
-                      : "",
+                  target: bestMatch.similarity >= 0.7 ? bestMatch.column : "",
                 };
               });
 
@@ -402,6 +547,24 @@ const Mapping: React.FC = () => {
       console.error("Error auto-generating mappings:", error);
       message.error("Failed to generate mappings.");
     }
+  };
+
+  const isMappingComplete = (block: any) => {
+    return (
+      block.selectedSourceTable &&
+      block.selectedDatabaseStorage &&
+      block.selectedTargetTable &&
+      block.mappings.every((m: any) => m.target !== "")
+    );
+  };
+
+  const isMappingIncomplete = (block: any) => {
+    return (
+      block.selectedSourceTable ||
+      block.selectedDatabaseStorage ||
+      block.selectedTargetTable ||
+      block.mappings.some((m: any) => m.target !== "")
+    );
   };
 
   return (
@@ -461,9 +624,18 @@ const Mapping: React.FC = () => {
         <Collapse accordion style={{ marginTop: 20 }}>
           {mappingBlocks.map((block) => (
             <Panel
-              header={`Mapping ${block.selectedSourceTable || "Source"} ➔ ${
-                block.selectedTargetTable || "Target"
-              } (${block.selectedDatabaseStorage || "No DB"})`}
+              header={
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {isMappingComplete(block) ? (
+                    <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                  ) : isMappingIncomplete(block) ? (
+                    <WarningOutlined style={{ color: "#faad14" }} />
+                  ) : null}
+                  {`Mapping ${block.selectedSourceTable || "Source"} ➔ ${
+                    block.selectedTargetTable || "Target"
+                  } (${block.selectedDatabaseStorage || "No DB"})`}
+                </div>
+              }
               key={block.id}
               extra={
                 <Popconfirm

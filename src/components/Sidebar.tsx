@@ -64,7 +64,7 @@ const SidebarMenu: React.FC = () => {
     getItem("Constraints", "/constraints", <DesktopOutlined />, () => navigate("/constraints")),
   ];
 
-  if (shouldShowInitialization) {
+  if (true) {
     configChildren.unshift(
       getItem("Initialization", "/initialization", <CloudDownloadOutlined />, () =>
         navigate("/initialization")
