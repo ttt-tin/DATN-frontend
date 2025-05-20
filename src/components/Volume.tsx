@@ -21,6 +21,7 @@ import {
   CloudOutlined,
   FolderOutlined,
   FileOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import {
   connectToExternalStorage,
@@ -161,13 +162,6 @@ const Volume: React.FC = () => {
       return;
     }
   
-    // Check if the table is an external volume
-    const isExternalVolume = selectedTable.endsWith("_external_volume_table");
-  
-    if (isExternalVolume) {
-      return;
-    }
-
     try {
       const response = await fetch(
         process.env.REACT_APP_API_URL +
@@ -189,72 +183,78 @@ const Volume: React.FC = () => {
   };
 
   const handleFileUploadWrapper = async () => {
-  if (!selectedTable || !fileToUpload) {
-    message.error("Please select a volume and a file.");
-    return;
-  }
+    if (!selectedTable || !fileToUpload) {
+      message.error("Please select a volume and a file.");
+      return;
+    }
 
-  // Check if the table is an external volume
-  const isExternalVolume = selectedTable.endsWith("_external_volume_table");
+    setLoading(true);
+    // Check if the table is an external volume
+    const isExternalVolume = selectedTable.endsWith("_external_volume_table");
 
-  try {
-    const formData = new FormData();
-    formData.append("file", fileToUpload);
+    try {
+      const formData = new FormData();
+      formData.append("file", fileToUpload);
 
-    if (isExternalVolume) {
-      // Call external storage upload API
-      const response = await fetch(
-        process.env.REACT_APP_API_URL + `/external-volume/upload/${selectedTable}`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "File upload to external storage failed.");
-      }
-
-      message.success("File uploaded successfully to external storage.");
-    } else {
-      // Standard upload process
-      formData.append("volume", selectedTable);
-
-      // Append additional fields
+      // Append additional fields for both external and normal volume
       Object.keys(uploadInfo).forEach((key) => {
         if (uploadInfo[key].trim() !== "") {
           formData.append(key, uploadInfo[key]);
         }
       });
 
-      const response = await fetch(
-        process.env.REACT_APP_API_URL + "/upload/upload-file",
-        {
-          method: "POST",
-          body: formData,
+      if (isExternalVolume) {
+        // Call external storage upload API
+        const response = await fetch(
+          process.env.REACT_APP_API_URL + `/external-volume/upload/${selectedTable}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || "File upload to external storage failed.");
         }
-      );
 
-      const result = await response.json();
+        message.success("File uploaded successfully to external storage.");
+      } else {
+        // Standard upload process
+        formData.append("volume", selectedTable);
 
-      if (!response.ok) {
-        throw new Error(result.message || "File upload failed.");
+        const response = await fetch(
+          process.env.REACT_APP_API_URL + "/upload/upload-file",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || "File upload failed.");
+        }
+
+        message.success("File uploaded successfully.");
       }
 
-      message.success("File uploaded successfully.");
+      // Reset modal and file states
+      setIsUploadFileModalOpen(false);
+      setFileToUpload(null);
+      setUploadInfo({ patient_id: "" });
+      
+      // Refresh the data
+      await reloadData();
+    } catch (err) {
+      console.error("Error uploading file:", err);
+      message.error(err.message || "Failed to upload file.");
+    } finally {
+      setLoading(false);
     }
-
-    // Reset modal and file states
-    setIsUploadFileModalOpen(false);
-    setFileToUpload(null);
-    setUploadInfo({ patient_id: "" });
-  } catch (err) {
-    console.error("Error uploading file:", err);
-    message.error(err.message || "Failed to upload file.");
-  }
-};
+  };
 
   const handleCreateVolume = async () => {
     try {
@@ -297,6 +297,23 @@ const Volume: React.FC = () => {
     }
   };
 
+  const reloadData = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchTables("AwsDataCatalog", "metadata-db");
+      setTables(data);
+      if (selectedTable) {
+        await handleTableSelect(selectedTable);
+      }
+      message.success("Data refreshed successfully");
+    } catch (err) {
+      console.error("Error refreshing data:", err);
+      message.error("Failed to refresh data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
       <div style={{ padding: '20px', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
@@ -319,6 +336,7 @@ const Volume: React.FC = () => {
                 type="primary" 
                 icon={<PlusOutlined />}
                 onClick={() => setIsCreateVolumeModalOpen(true)}
+                disabled={loading}
               >
                 Create Volume
               </Button>
@@ -326,6 +344,7 @@ const Volume: React.FC = () => {
                 type="primary" 
                 icon={<CloudOutlined />}
                 onClick={() => setIsCreateExternalVolumeModalOpen(true)}
+                disabled={loading}
               >
                 Create External Volume
               </Button>
@@ -333,10 +352,19 @@ const Volume: React.FC = () => {
                 type="primary" 
                 icon={<UploadOutlined />}
                 onClick={() => {handleUploadButtonClick()}}
+                disabled={loading}
               >
                 Upload File
               </Button>
             </div>
+            <Button
+              type="primary"
+              icon={<ReloadOutlined />}
+              onClick={reloadData}
+              loading={loading}
+            >
+              Refresh
+            </Button>
           </div>
 
           <Card bordered={false} style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
@@ -380,6 +408,7 @@ const Volume: React.FC = () => {
               })}
               onChange={handleTableSelect}
               value={selectedTable}
+              disabled={loading}
             />
             {loading ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -410,18 +439,23 @@ const Volume: React.FC = () => {
           setIsTextData(false);
         }}
       >
-        <Input
-          placeholder="Enter volume name"
-          value={newVolumeName}
-          onChange={(e) => setNewVolumeName(e.target.value)}
-          style={{ marginBottom: "16px" }}
-        />
-        <Checkbox
-          checked={isTextData}
-          onChange={(e) => setIsTextData(e.target.checked)}
-        >
-          This is a text data volume
-        </Checkbox>
+        <Form layout="vertical">
+          <Form.Item label="Volume Name" required>
+            <Input
+              placeholder="Enter volume name"
+              value={newVolumeName}
+              onChange={(e) => setNewVolumeName(e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item>
+            <Checkbox
+              checked={isTextData}
+              onChange={(e) => setIsTextData(e.target.checked)}
+            >
+              This is a text data volume
+            </Checkbox>
+          </Form.Item>
+        </Form>
       </Modal>
 
       <Modal
@@ -430,24 +464,29 @@ const Volume: React.FC = () => {
         onOk={handleCreateExternalVolume}
         onCancel={() => setIsCreateExternalVolumeModalOpen(false)}
       >
-        <Input
-          placeholder="Enter volume name"
-          value={newVolumeName}
-          onChange={(e) => setNewVolumeName(e.target.value)}
-          style={{ marginTop: "16px" }}
-        />
-        <Input
-          placeholder="Azure Container Name"
-          value={azureContainer}
-          onChange={(e) => setAzureContainer(e.target.value)}
-          style={{ marginTop: "16px" }}
-        />
-        <Input
-          placeholder="Azure Connection String"
-          value={azureConnectionString}
-          onChange={(e) => setAzureConnectionString(e.target.value)}
-          style={{ marginTop: "16px" }}
-        />
+        <Form layout="vertical">
+          <Form.Item label="Volume Name" required>
+            <Input
+              placeholder="Enter volume name"
+              value={newVolumeName}
+              onChange={(e) => setNewVolumeName(e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item label="Azure Container Name" required>
+            <Input
+              placeholder="Azure Container Name"
+              value={azureContainer}
+              onChange={(e) => setAzureContainer(e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item label="Azure Connection String" required>
+            <Input
+              placeholder="Azure Connection String"
+              value={azureConnectionString}
+              onChange={(e) => setAzureConnectionString(e.target.value)}
+            />
+          </Form.Item>
+        </Form>
       </Modal>
 
       <Modal
@@ -455,6 +494,7 @@ const Volume: React.FC = () => {
         visible={isUploadFileModalOpen}
         onOk={handleFileUploadWrapper}
         onCancel={() => setIsUploadFileModalOpen(false)}
+        confirmLoading={loading}
       >
         <Upload
           beforeUpload={(file) => {
@@ -462,19 +502,21 @@ const Volume: React.FC = () => {
             return false;
           }}
           showUploadList={true}
+          disabled={loading}
         >
-          <Button icon={<UploadOutlined />}>Select File</Button>
+          <Button icon={<UploadOutlined />} disabled={loading}>Select File</Button>
         </Upload>
         {uploadFields.map((field) => (
-          <Input
-            key={field}
-            placeholder={`Enter ${field}`}
-            value={uploadInfo[field]}
-            onChange={(e) =>
-              setUploadInfo({ ...uploadInfo, [field]: e.target.value })
-            }
-            style={{ marginTop: "16px" }}
-          />
+          <Form.Item key={field} label={field} required>
+            <Input
+              placeholder={`Enter ${field}`}
+              value={uploadInfo[field]}
+              onChange={(e) =>
+                setUploadInfo({ ...uploadInfo, [field]: e.target.value })
+              }
+              disabled={loading}
+            />
+          </Form.Item>
         ))}
       </Modal>
     </Layout>
